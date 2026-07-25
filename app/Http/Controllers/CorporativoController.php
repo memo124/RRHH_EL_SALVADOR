@@ -1,0 +1,480 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class CorporativoController extends Controller
+{
+    // ─── EMPRESAS ─────────────────────────────────────────────────────────────
+
+    public function indexEmpresas()
+    {
+        return response()->json(DB::table('EMPRESA')->orderBy('ID_EMPRESA')->get());
+    }
+
+    public function storeEmpresa(Request $request)
+    {
+        $request->validate([
+            'NOMBREEMPRESA'   => 'required|string|max:150',
+            'ABREVIATURA'     => 'nullable|string|max:20',
+            'NUMEROREGISTRO'  => 'nullable|string|max:50',
+            'NUMERONIT'       => 'nullable|string|max:20',
+            'GIRO'            => 'nullable|string|max:500',
+            'DIRECCION'       => 'nullable|string|max:500',
+            'TELEFONO'        => 'nullable|string|max:25',
+        ]);
+
+        $maxId = DB::table('EMPRESA')->max('ID_EMPRESA') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('EMPRESA')->insert([
+            'ID_EMPRESA'    => $id,
+            'NOMBREEMPRESA' => $request->NOMBREEMPRESA,
+            'ABREVIATURA'   => $request->ABREVIATURA,
+            'NUMEROREGISTRO'=> $request->NUMEROREGISTRO,
+            'NUMERONIT'     => $request->NUMERONIT,
+            'GIRO'          => $request->GIRO,
+            'DIRECCION'     => $request->DIRECCION,
+            'TELEFONO'      => $request->TELEFONO,
+            'EMPRESAACTIVA' => true,
+        ]);
+
+        return response()->json(['ID_EMPRESA' => $id, 'NOMBREEMPRESA' => $request->NOMBREEMPRESA], 201);
+    }
+
+    public function updateEmpresa(Request $request, $id)
+    {
+        $request->validate([
+            'NOMBREEMPRESA'  => 'required|string|max:150',
+            'ABREVIATURA'    => 'nullable|string|max:20',
+            'NUMEROREGISTRO' => 'nullable|string|max:50',
+            'NUMERONIT'      => 'nullable|string|max:20',
+            'GIRO'           => 'nullable|string|max:500',
+            'DIRECCION'      => 'nullable|string|max:500',
+            'TELEFONO'       => 'nullable|string|max:25',
+            'EMPRESAACTIVA'  => 'boolean',
+        ]);
+
+        DB::table('EMPRESA')->where('ID_EMPRESA', $id)->update([
+            'NOMBREEMPRESA'  => $request->NOMBREEMPRESA,
+            'ABREVIATURA'    => $request->ABREVIATURA,
+            'NUMEROREGISTRO' => $request->NUMEROREGISTRO,
+            'NUMERONIT'      => $request->NUMERONIT,
+            'GIRO'           => $request->GIRO,
+            'DIRECCION'      => $request->DIRECCION,
+            'TELEFONO'       => $request->TELEFONO,
+            'EMPRESAACTIVA'  => $request->EMPRESAACTIVA ?? true,
+        ]);
+
+        return response()->json(['ID_EMPRESA' => $id, 'NOMBREEMPRESA' => $request->NOMBREEMPRESA]);
+    }
+
+    public function destroyEmpresa($id)
+    {
+        DB::table('EMPRESA')->where('ID_EMPRESA', $id)->update(['EMPRESAACTIVA' => false]);
+        return response()->json(['message' => 'Empresa inactivada correctamente.']);
+    }
+
+    // ─── AREAS ────────────────────────────────────────────────────────────────
+
+    public function indexAreas()
+    {
+        return response()->json(DB::table('AREA')->orderBy('ID_AREA')->get());
+    }
+
+    public function storeArea(Request $request)
+    {
+        $request->validate([
+            'ID_EMPRESA'  => 'required|integer',
+            'NOMBREAREA'  => 'required|string|max:200',
+            'ACTIVA'      => 'boolean',
+            'PRORRATEADA' => 'boolean',
+        ]);
+
+        $maxId = DB::table('AREA')->max('ID_AREA') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('AREA')->insert([
+            'ID_AREA'     => $id,
+            'ID_EMPRESA'  => $request->ID_EMPRESA,
+            'NOMBREAREA'  => $request->NOMBREAREA,
+            'ACTIVA'      => $request->ACTIVA ?? true,
+            'PRORRATEADA' => $request->PRORRATEADA ?? false,
+        ]);
+
+        return response()->json(['ID_AREA' => $id, 'NOMBREAREA' => $request->NOMBREAREA], 201);
+    }
+
+    public function updateArea(Request $request, $id)
+    {
+        $request->validate([
+            'ID_EMPRESA'  => 'required|integer',
+            'NOMBREAREA'  => 'required|string|max:200',
+            'ACTIVA'      => 'boolean',
+            'PRORRATEADA' => 'boolean',
+        ]);
+
+        DB::table('AREA')->where('ID_AREA', $id)->update([
+            'ID_EMPRESA'  => $request->ID_EMPRESA,
+            'NOMBREAREA'  => $request->NOMBREAREA,
+            'ACTIVA'      => $request->ACTIVA ?? true,
+            'PRORRATEADA' => $request->PRORRATEADA ?? false,
+        ]);
+
+        return response()->json(['ID_AREA' => $id, 'NOMBREAREA' => $request->NOMBREAREA]);
+    }
+
+    public function destroyArea($id)
+    {
+        DB::table('AREA')->where('ID_AREA', $id)->update(['ACTIVA' => false]);
+        return response()->json(['message' => 'Área inactivada correctamente.']);
+    }
+
+    // ─── CENTRO DE COSTO ──────────────────────────────────────────────────────
+
+    public function indexCentrosCosto()
+    {
+        return response()->json(DB::table('CENTRO_COSTO')->orderBy('ID_CENTROCOSTO')->get());
+    }
+
+    public function storeCentroCosto(Request $request)
+    {
+        $request->validate([
+            'ID_EMPRESA'           => 'required|integer',
+            'CODIGO_CENTROCOSTO'   => 'required|string|max:50',
+            'NOMBRE_CENTROCOSTO'   => 'required|string|max:200',
+            'DESCRIPCION'          => 'nullable|string|max:500',
+            'ESACTIVO'             => 'boolean',
+        ]);
+
+        $maxId = DB::table('CENTRO_COSTO')->max('ID_CENTROCOSTO') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('CENTRO_COSTO')->insert([
+            'ID_CENTROCOSTO'       => $id,
+            'ID_EMPRESA'           => $request->ID_EMPRESA,
+            'CODIGO_CENTROCOSTO'   => $request->CODIGO_CENTROCOSTO,
+            'NOMBRE_CENTROCOSTO'   => $request->NOMBRE_CENTROCOSTO,
+            'DESCRIPCION'          => $request->DESCRIPCION,
+            'ESACTIVO'             => $request->ESACTIVO ?? true,
+        ]);
+
+        return response()->json(['ID_CENTROCOSTO' => $id, 'NOMBRE_CENTROCOSTO' => $request->NOMBRE_CENTROCOSTO], 201);
+    }
+
+    public function updateCentroCosto(Request $request, $id)
+    {
+        $request->validate([
+            'ID_EMPRESA'         => 'required|integer',
+            'CODIGO_CENTROCOSTO' => 'required|string|max:50',
+            'NOMBRE_CENTROCOSTO' => 'required|string|max:200',
+            'DESCRIPCION'        => 'nullable|string|max:500',
+            'ESACTIVO'           => 'boolean',
+        ]);
+
+        DB::table('CENTRO_COSTO')->where('ID_CENTROCOSTO', $id)->update([
+            'ID_EMPRESA'         => $request->ID_EMPRESA,
+            'CODIGO_CENTROCOSTO' => $request->CODIGO_CENTROCOSTO,
+            'NOMBRE_CENTROCOSTO' => $request->NOMBRE_CENTROCOSTO,
+            'DESCRIPCION'        => $request->DESCRIPCION,
+            'ESACTIVO'           => $request->ESACTIVO ?? true,
+        ]);
+
+        return response()->json(['ID_CENTROCOSTO' => $id, 'NOMBRE_CENTROCOSTO' => $request->NOMBRE_CENTROCOSTO]);
+    }
+
+    public function destroyCentroCosto($id)
+    {
+        DB::table('CENTRO_COSTO')->where('ID_CENTROCOSTO', $id)->update(['ESACTIVO' => false]);
+        return response()->json(['message' => 'Centro de costo inactivado correctamente.']);
+    }
+
+    // ─── DEPARTAMENTOS ────────────────────────────────────────────────────────
+
+    public function indexDepartamentos()
+    {
+        return response()->json(DB::table('DEPARTAMENTO')->orderBy('ID_DEPARTAMENTO')->get());
+    }
+
+    public function storeDepartamento(Request $request)
+    {
+        $request->validate([
+            'ID_EMPRESA'       => 'required|integer',
+            'ID_AREA'          => 'required|integer',
+            'ID_CENTROCOSTO'   => 'nullable|integer',
+            'NOMBREDEPARTAMENTO' => 'required|string|max:150',
+            'DESCRIPCION'      => 'nullable|string|max:500',
+            'CUENTACONTABLE'   => 'nullable|string|max:50',
+            'MANO_OBRA_DIRECTA'=> 'boolean',
+        ]);
+
+        $maxId = DB::table('DEPARTAMENTO')->max('ID_DEPARTAMENTO') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('DEPARTAMENTO')->insert([
+            'ID_DEPARTAMENTO'    => $id,
+            'ID_EMPRESA'         => $request->ID_EMPRESA,
+            'ID_AREA'            => $request->ID_AREA,
+            'ID_CENTROCOSTO'     => $request->ID_CENTROCOSTO,
+            'NOMBREDEPARTAMENTO' => $request->NOMBREDEPARTAMENTO,
+            'DESCRIPCION'        => $request->DESCRIPCION,
+            'CUENTACONTABLE'     => $request->CUENTACONTABLE,
+            'MANO_OBRA_DIRECTA'  => $request->MANO_OBRA_DIRECTA ?? false,
+        ]);
+
+        return response()->json(['ID_DEPARTAMENTO' => $id, 'NOMBREDEPARTAMENTO' => $request->NOMBREDEPARTAMENTO], 201);
+    }
+
+    public function updateDepartamento(Request $request, $id)
+    {
+        $request->validate([
+            'ID_EMPRESA'         => 'required|integer',
+            'ID_AREA'            => 'required|integer',
+            'ID_CENTROCOSTO'     => 'nullable|integer',
+            'NOMBREDEPARTAMENTO' => 'required|string|max:150',
+            'DESCRIPCION'        => 'nullable|string|max:500',
+            'CUENTACONTABLE'     => 'nullable|string|max:50',
+            'MANO_OBRA_DIRECTA'  => 'boolean',
+        ]);
+
+        DB::table('DEPARTAMENTO')->where('ID_DEPARTAMENTO', $id)->update([
+            'ID_EMPRESA'         => $request->ID_EMPRESA,
+            'ID_AREA'            => $request->ID_AREA,
+            'ID_CENTROCOSTO'     => $request->ID_CENTROCOSTO,
+            'NOMBREDEPARTAMENTO' => $request->NOMBREDEPARTAMENTO,
+            'DESCRIPCION'        => $request->DESCRIPCION,
+            'CUENTACONTABLE'     => $request->CUENTACONTABLE,
+            'MANO_OBRA_DIRECTA'  => $request->MANO_OBRA_DIRECTA ?? false,
+        ]);
+
+        return response()->json(['ID_DEPARTAMENTO' => $id, 'NOMBREDEPARTAMENTO' => $request->NOMBREDEPARTAMENTO]);
+    }
+
+    public function destroyDepartamento($id)
+    {
+        DB::table('DEPARTAMENTO')->where('ID_DEPARTAMENTO', $id)->delete();
+        return response()->json(['message' => 'Departamento eliminado correctamente.']);
+    }
+
+    // ─── CARGOS ───────────────────────────────────────────────────────────────
+
+    public function indexCargos()
+    {
+        return response()->json(DB::table('CARGO')->orderBy('ID_CARGO')->get());
+    }
+
+    public function storeCargo(Request $request)
+    {
+        $request->validate([
+            'ID_DEPARTAMENTO' => 'required|integer',
+            'ID_CENTROCOSTO'  => 'nullable|integer',
+            'ID_CARGO_PADRE'  => 'nullable|integer',
+            'NIVEL_JERARQUICO'=> 'integer',
+            'NOMBRECARGO'     => 'required|string|max:150',
+            'CARGOESTADO'     => 'boolean',
+        ]);
+
+        $maxId = DB::table('CARGO')->max('ID_CARGO') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('CARGO')->insert([
+            'ID_CARGO'         => $id,
+            'ID_DEPARTAMENTO'  => $request->ID_DEPARTAMENTO,
+            'ID_CENTROCOSTO'   => $request->ID_CENTROCOSTO,
+            'ID_CARGO_PADRE'   => $request->ID_CARGO_PADRE,
+            'NIVEL_JERARQUICO' => $request->NIVEL_JERARQUICO ?? 1,
+            'NOMBRECARGO'      => $request->NOMBRECARGO,
+            'CARGOESTADO'      => $request->CARGOESTADO ?? true,
+        ]);
+
+        return response()->json(['ID_CARGO' => $id, 'NOMBRECARGO' => $request->NOMBRECARGO], 201);
+    }
+
+    public function updateCargo(Request $request, $id)
+    {
+        $request->validate([
+            'ID_DEPARTAMENTO'  => 'required|integer',
+            'ID_CENTROCOSTO'   => 'nullable|integer',
+            'ID_CARGO_PADRE'   => 'nullable|integer',
+            'NIVEL_JERARQUICO' => 'integer',
+            'NOMBRECARGO'      => 'required|string|max:150',
+            'CARGOESTADO'      => 'boolean',
+        ]);
+
+        DB::table('CARGO')->where('ID_CARGO', $id)->update([
+            'ID_DEPARTAMENTO'  => $request->ID_DEPARTAMENTO,
+            'ID_CENTROCOSTO'   => $request->ID_CENTROCOSTO,
+            'ID_CARGO_PADRE'   => $request->ID_CARGO_PADRE,
+            'NIVEL_JERARQUICO' => $request->NIVEL_JERARQUICO ?? 1,
+            'NOMBRECARGO'      => $request->NOMBRECARGO,
+            'CARGOESTADO'      => $request->CARGOESTADO ?? true,
+        ]);
+
+        return response()->json(['ID_CARGO' => $id, 'NOMBRECARGO' => $request->NOMBRECARGO]);
+    }
+
+    public function destroyCargo($id)
+    {
+        DB::table('CARGO')->where('ID_CARGO', $id)->update(['CARGOESTADO' => false]);
+        return response()->json(['message' => 'Cargo inactivado correctamente.']);
+    }
+
+    // ─── SUCURSALES ───────────────────────────────────────────────────────────
+
+    public function indexSucursales()
+    {
+        return response()->json(DB::table('SUCURSAL')->orderBy('ID_SUCURSAL')->get());
+    }
+
+    public function storeSucursal(Request $request)
+    {
+        $request->validate([
+            'ID_EMPRESA'     => 'required|integer',
+            'NOMBRESUCURSAL' => 'required|string|max:100',
+            'DIRECCION'      => 'nullable|string|max:250',
+            'ESACTIVA'       => 'boolean',
+        ]);
+
+        $maxId = DB::table('SUCURSAL')->max('ID_SUCURSAL') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('SUCURSAL')->insert([
+            'ID_SUCURSAL'    => $id,
+            'ID_EMPRESA'     => $request->ID_EMPRESA,
+            'NOMBRESUCURSAL' => $request->NOMBRESUCURSAL,
+            'DIRECCION'      => $request->DIRECCION,
+            'ESACTIVA'       => $request->ESACTIVA ?? true,
+        ]);
+
+        return response()->json(['ID_SUCURSAL' => $id, 'NOMBRESUCURSAL' => $request->NOMBRESUCURSAL], 201);
+    }
+
+    public function updateSucursal(Request $request, $id)
+    {
+        $request->validate([
+            'ID_EMPRESA'     => 'required|integer',
+            'NOMBRESUCURSAL' => 'required|string|max:100',
+            'DIRECCION'      => 'nullable|string|max:250',
+            'ESACTIVA'       => 'boolean',
+        ]);
+
+        DB::table('SUCURSAL')->where('ID_SUCURSAL', $id)->update([
+            'ID_EMPRESA'     => $request->ID_EMPRESA,
+            'NOMBRESUCURSAL' => $request->NOMBRESUCURSAL,
+            'DIRECCION'      => $request->DIRECCION,
+            'ESACTIVA'       => $request->ESACTIVA ?? true,
+        ]);
+
+        return response()->json(['ID_SUCURSAL' => $id, 'NOMBRESUCURSAL' => $request->NOMBRESUCURSAL]);
+    }
+
+    public function destroySucursal($id)
+    {
+        DB::table('SUCURSAL')->where('ID_SUCURSAL', $id)->update(['ESACTIVA' => false]);
+        return response()->json(['message' => 'Sucursal inactivada correctamente.']);
+    }
+
+    // ─── BODEGAS ──────────────────────────────────────────────────────────────
+
+    public function indexBodegas()
+    {
+        return response()->json(DB::table('BODEGA')->orderBy('ID_BODEGA')->get());
+    }
+
+    public function storeBodega(Request $request)
+    {
+        $request->validate([
+            'ID_EMPRESA'  => 'required|integer',
+            'NOMBREBODEGA'=> 'required|string|max:200',
+        ]);
+
+        $maxId = DB::table('BODEGA')->max('ID_BODEGA') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('BODEGA')->insert([
+            'ID_BODEGA'    => $id,
+            'ID_EMPRESA'   => $request->ID_EMPRESA,
+            'NOMBREBODEGA' => $request->NOMBREBODEGA,
+        ]);
+
+        return response()->json(['ID_BODEGA' => $id, 'NOMBREBODEGA' => $request->NOMBREBODEGA], 201);
+    }
+
+    public function updateBodega(Request $request, $id)
+    {
+        $request->validate([
+            'ID_EMPRESA'   => 'required|integer',
+            'NOMBREBODEGA' => 'required|string|max:200',
+        ]);
+
+        DB::table('BODEGA')->where('ID_BODEGA', $id)->update([
+            'ID_EMPRESA'   => $request->ID_EMPRESA,
+            'NOMBREBODEGA' => $request->NOMBREBODEGA,
+        ]);
+
+        return response()->json(['ID_BODEGA' => $id, 'NOMBREBODEGA' => $request->NOMBREBODEGA]);
+    }
+
+    public function destroyBodega($id)
+    {
+        DB::table('BODEGA')->where('ID_BODEGA', $id)->delete();
+        return response()->json(['message' => 'Bodega eliminada correctamente.']);
+    }
+
+    // ─── RUTAS ────────────────────────────────────────────────────────────────
+
+    public function indexRutas()
+    {
+        return response()->json(DB::table('RUTA')->orderBy('ID_RUTA')->get());
+    }
+
+    public function storeRuta(Request $request)
+    {
+        $request->validate([
+            'ID_EMPRESA'    => 'required|integer',
+            'ID_CENTROCOSTO'=> 'nullable|integer',
+            'NOMBRERUTA'    => 'required|string|max:100',
+            'ESACTIVA'      => 'boolean',
+        ]);
+
+        $maxId = DB::table('RUTA')->max('ID_RUTA') ?? 0;
+        $id    = $maxId + 1;
+
+        DB::table('RUTA')->insert([
+            'ID_RUTA'       => $id,
+            'ID_EMPRESA'    => $request->ID_EMPRESA,
+            'ID_CENTROCOSTO'=> $request->ID_CENTROCOSTO,
+            'NOMBRERUTA'    => $request->NOMBRERUTA,
+            'ESACTIVA'      => $request->ESACTIVA ?? true,
+        ]);
+
+        return response()->json(['ID_RUTA' => $id, 'NOMBRERUTA' => $request->NOMBRERUTA], 201);
+    }
+
+    public function updateRuta(Request $request, $id)
+    {
+        $request->validate([
+            'ID_EMPRESA'     => 'required|integer',
+            'ID_CENTROCOSTO' => 'nullable|integer',
+            'NOMBRERUTA'     => 'required|string|max:100',
+            'ESACTIVA'       => 'boolean',
+        ]);
+
+        DB::table('RUTA')->where('ID_RUTA', $id)->update([
+            'ID_EMPRESA'    => $request->ID_EMPRESA,
+            'ID_CENTROCOSTO'=> $request->ID_CENTROCOSTO,
+            'NOMBRERUTA'    => $request->NOMBRERUTA,
+            'ESACTIVA'      => $request->ESACTIVA ?? true,
+        ]);
+
+        return response()->json(['ID_RUTA' => $id, 'NOMBRERUTA' => $request->NOMBRERUTA]);
+    }
+
+    public function destroyRuta($id)
+    {
+        DB::table('RUTA')->where('ID_RUTA', $id)->update(['ESACTIVA' => false]);
+        return response()->json(['message' => 'Ruta inactivada correctamente.']);
+    }
+}
