@@ -27,7 +27,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 ### Dependencias principales
 
-- Laravel 11.31, PHP 8.2
+- Laravel 11.31, PHP 8.2, PostgreSQL 14+
 - Vue 3.5, Vite 6, Tailwind 3.4
 - @tanstack/vue-virtual 3.13
 - barryvdh/laravel-dompdf 3.1

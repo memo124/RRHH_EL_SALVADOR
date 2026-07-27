@@ -15,14 +15,11 @@ Sistema de Recursos Humanos y nómina para empresas en El Salvador. Incluye expe
 | Composer | 2.x | 2.7+ |
 | Node.js | 18.x | 20 LTS |
 | npm | 9.x | 10+ |
-| Base de datos | SQLite / MySQL / MariaDB / SQL Server | SQL Server (producción) |
+| Base de datos | PostgreSQL 14+ | PostgreSQL 16 |
 
 ### Extensiones PHP requeridas
 
-`openssl`, `pdo`, `mbstring`, `tokenizer`, `xml`, `ctype`, `json`, `bcmath`, `fileinfo`, `gd`
-
-Para SQL Server: `pdo_sqlsrv`, `sqlsrv`  
-Para MySQL/MariaDB: `pdo_mysql`
+`openssl`, `pdo`, `pdo_pgsql`, `pgsql`, `mbstring`, `tokenizer`, `xml`, `ctype`, `json`, `bcmath`, `fileinfo`, `gd`
 
 ---
 
@@ -34,6 +31,9 @@ cd RRHH_EL_SALVADOR
 
 cp .env.example .env          # Linux/macOS
 # copy .env.example .env      # Windows CMD
+
+# Crear la base de datos en PostgreSQL antes de migrar:
+# createdb -U postgres rrhh_el_salvador
 
 composer install
 npm install --legacy-peer-deps

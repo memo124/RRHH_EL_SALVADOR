@@ -1,6 +1,6 @@
 # Instalación en Windows — RRHH El Salvador v1.0.0
 
-Guía para entornos **AppServ**, **XAMPP** o PHP/Node instalados manualmente.
+Guía para entornos **AppServ**, **XAMPP** o PHP/Node instalados manualmente, con **PostgreSQL** como base de datos.
 
 ---
 
@@ -12,9 +12,11 @@ Guía para entornos **AppServ**, **XAMPP** o PHP/Node instalados manualmente.
 | Composer | 2.x |
 | Node.js | 20 LTS |
 | Git | 2.x |
-| Base de datos | MySQL 8 / MariaDB 10 / SQL Server 2019+ |
+| PostgreSQL | 14+ (recomendado 16) |
 
-Habilitar en `php.ini`: `extension=openssl`, `pdo_mysql` o `pdo_sqlsrv`, `mbstring`, `fileinfo`, `gd`.
+Habilitar en `php.ini`: `extension=openssl`, `extension=pdo_pgsql`, `extension=pgsql`, `mbstring`, `fileinfo`, `gd`.
+
+Instalar PostgreSQL desde [postgresql.org/download/windows](https://www.postgresql.org/download/windows/) o con el instalador incluido en su stack (AppServ, etc.).
 
 ---
 
@@ -28,13 +30,33 @@ cd RRHH_EL_SALVADOR
 
 ---
 
-## 3. Configurar `.env`
+## 3. Configurar PostgreSQL
+
+Crear la base de datos con **pgAdmin** o desde `psql`:
+
+```sql
+CREATE DATABASE rrhh_el_salvador
+  WITH ENCODING 'UTF8'
+       LC_COLLATE 'Spanish_El Salvador.1252'
+       LC_CTYPE 'Spanish_El Salvador.1252'
+       TEMPLATE template0;
+```
+
+Si prefiere un usuario dedicado:
+
+```sql
+CREATE USER rrhh WITH PASSWORD 'password_seguro';
+CREATE DATABASE rrhh_el_salvador OWNER rrhh ENCODING 'UTF8';
+GRANT ALL PRIVILEGES ON DATABASE rrhh_el_salvador TO rrhh;
+```
+
+---
+
+## 4. Configurar `.env`
 
 ```powershell
 copy .env.example .env
 ```
-
-### Opción A — MySQL (AppServ / XAMPP)
 
 ```ini
 APP_NAME="RRHH El Salvador"
@@ -43,43 +65,17 @@ APP_DEBUG=true
 APP_URL=http://127.0.0.1:8000
 APP_TIMEZONE=America/El_Salvador
 
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=5432
 DB_DATABASE=rrhh_el_salvador
-DB_USERNAME=root
+DB_USERNAME=postgres
 DB_PASSWORD=tu_password
-```
-
-Crear la base de datos en phpMyAdmin o:
-
-```sql
-CREATE DATABASE rrhh_el_salvador CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-### Opción B — SQL Server
-
-```ini
-DB_CONNECTION=sqlsrv
-DB_HOST=localhost
-DB_PORT=1433
-DB_DATABASE=RRHH_EL_SALVADOR
-DB_USERNAME=sa
-DB_PASSWORD=tu_password
-```
-
-Requiere [Microsoft ODBC Driver for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server) y extensiones `sqlsrv` / `pdo_sqlsrv` para PHP 8.2.
-
-### Opción C — SQLite (solo pruebas rápidas)
-
-```ini
-DB_CONNECTION=sqlite
-# DB_DATABASE se resuelve a database/database.sqlite
 ```
 
 ---
 
-## 4. Instalar dependencias
+## 5. Instalar dependencias
 
 ```powershell
 composer install
@@ -90,7 +86,7 @@ npm install --legacy-peer-deps
 
 ---
 
-## 5. Inicializar aplicación
+## 6. Inicializar aplicación
 
 ```powershell
 php artisan key:generate
@@ -102,7 +98,7 @@ El seeder carga catálogos legales, empresas demo, nómina masiva (~200 empleado
 
 ---
 
-## 6. Ejecutar en desarrollo
+## 7. Ejecutar en desarrollo
 
 ### Método automático (recomendado)
 
@@ -114,11 +110,7 @@ Doble clic en `iniciar.bat` o desde PowerShell:
 
 Abre Laravel (`http://127.0.0.1:8000`) y Vite en ventanas separadas.
 
-**Nota:** `iniciar.bat` asume PHP en `C:\xampp\php\php.exe`. Si usa AppServ, edite la variable `PHP` al inicio del archivo, por ejemplo:
-
-```bat
-set "PHP=C:\AppServ\php8.2\php.exe"
-```
+**Nota:** `iniciar.bat` asume PHP en `C:\AppServ\php8.2\php.exe`. Si usa otra ruta, edite la variable `PHP` al inicio del archivo.
 
 ### Método manual (dos terminales)
 
@@ -136,7 +128,7 @@ npm run dev
 
 ---
 
-## 7. Acceso
+## 8. Acceso
 
 | | |
 |-|-|
@@ -146,13 +138,13 @@ npm run dev
 
 ---
 
-## 8. Producción en Windows (IIS)
+## 9. Producción en Windows (IIS)
 
 1. Instalar [URL Rewrite](https://www.iis.net/downloads/microsoft/url-rewrite) y PHP Manager para IIS.
 2. Apuntar el sitio a la carpeta `public/`.
 3. Ejecutar `composer install --no-dev --optimize-autoloader`.
 4. Ejecutar `npm run build`.
-5. Configurar `.env` con `APP_ENV=production`, `APP_DEBUG=false`.
+5. Configurar `.env` con `APP_ENV=production`, `APP_DEBUG=false` y credenciales PostgreSQL de producción.
 6. Ejecutar:
 
 ```powershell
@@ -170,7 +162,8 @@ php artisan view:cache
 | Problema | Solución |
 |----------|----------|
 | `php` no reconocido | Agregar PHP al PATH o usar ruta completa |
-| Error `pdo_sqlsrv` | Instalar drivers Microsoft para PHP 8.2 |
+| Error `could not find driver` (pgsql) | Habilitar `pdo_pgsql` y `pgsql` en `php.ini` |
+| `connection refused` a PostgreSQL | Verificar que el servicio `postgresql-x64-16` esté activo |
 | Pantalla en blanco | Revisar `storage/logs/laravel.log` |
 | Assets sin estilo | Ejecutar `npm run build` o `npm run dev` |
 | Timeout al calcular planilla | Aumentar `max_execution_time` en `php.ini` |

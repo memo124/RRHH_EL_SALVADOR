@@ -1,6 +1,6 @@
 # Instalación con Docker — RRHH El Salvador v1.0.0
 
-Entorno containerizado con **PHP 8.2**, **Nginx**, **MySQL 8** y **Node** (solo build).
+Entorno containerizado con **PHP 8.2**, **Nginx**, **PostgreSQL 16** y **Node** (solo build).
 
 ---
 
@@ -16,8 +16,8 @@ Entorno containerizado con **PHP 8.2**, **Nginx**, **MySQL 8** y **Node** (solo 
 ```
 docker/
   nginx/default.conf    # Virtual host
-  php/Dockerfile        # Imagen PHP-FPM
-  mysql/init.sql        # Creación de BD
+  php/Dockerfile        # Imagen PHP-FPM + pdo_pgsql
+  postgres/init.sql     # Extensiones iniciales
 docker-compose.yml
 ```
 
@@ -31,7 +31,7 @@ cd RRHH_EL_SALVADOR
 cp .env.example .env
 ```
 
-Ajustar `.env` para Docker (valores ya compatibles con `docker-compose.yml`):
+Ajustar `.env` para Docker:
 
 ```ini
 APP_NAME="RRHH El Salvador"
@@ -40,9 +40,9 @@ APP_DEBUG=true
 APP_URL=http://localhost:8080
 APP_TIMEZONE=America/El_Salvador
 
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
 DB_DATABASE=rrhh_el_salvador
 DB_USERNAME=rrhh
 DB_PASSWORD=rrhh_secret
@@ -62,8 +62,8 @@ Servicios:
 |----------|--------|-------------|
 | `app` | — | PHP 8.2-FPM |
 | `nginx` | **8080** | Servidor web |
-| `mysql` | 3306 | MySQL 8.0 |
-| `node` | — | Ejecuta `npm run build` al iniciar |
+| `postgres` | 5432 | PostgreSQL 16 |
+| `node` | — | Ejecuta `npm run build` (perfil `build`) |
 
 ---
 
@@ -77,8 +77,7 @@ docker compose exec app php artisan migrate --seed
 Si `node` no compiló assets:
 
 ```bash
-docker compose run --rm node npm install --legacy-peer-deps
-docker compose run --rm node npm run build
+docker compose --profile build run --rm node
 ```
 
 ---
@@ -90,7 +89,7 @@ docker compose run --rm node npm run build
 | URL | http://localhost:8080 |
 | Usuario | `admin@rrhh.sv` |
 | Contraseña | `Admin123!` |
-| MySQL (desde host) | `127.0.0.1:3306` user `rrhh` / `rrhh_secret` |
+| PostgreSQL (desde host) | `127.0.0.1:5432` user `rrhh` / `rrhh_secret` db `rrhh_el_salvador` |
 
 ---
 
@@ -98,11 +97,14 @@ docker compose run --rm node npm run build
 
 ```bash
 # Ver logs
-docker compose logs -f app nginx
+docker compose logs -f app nginx postgres
 
 # Artisan
 docker compose exec app php artisan migrate
 docker compose exec app php artisan tinker
+
+# Consola PostgreSQL
+docker compose exec postgres psql -U rrhh -d rrhh_el_salvador
 
 # Reiniciar
 docker compose restart
@@ -134,7 +136,7 @@ VITE_DEV_SERVER_URL=http://localhost:5173
 
 1. Cambiar `.env`: `APP_ENV=production`, `APP_DEBUG=false`.
 2. Usar secretos seguros para `DB_PASSWORD` y `APP_KEY`.
-3. Montar volumen persistente para `storage/` y backups de MySQL.
+3. Montar volumen persistente para `storage/` y backups de PostgreSQL.
 4. Colocar un reverse proxy (Traefik / Caddy) con TLS delante de nginx.
 
 ```bash
@@ -143,8 +145,8 @@ docker compose exec app php artisan route:cache
 docker compose exec app php artisan view:cache
 ```
 
----
+Backup de la base:
 
-## Notas SQL Server
-
-La imagen incluida usa **MySQL**. Para SQL Server en Docker, reemplace el servicio `mysql` por `mcr.microsoft.com/mssql/server:2022-latest`, instale `pdo_sqlsrv` en la imagen PHP y ajuste `DB_CONNECTION=sqlsrv` en `.env`.
+```bash
+docker compose exec postgres pg_dump -U rrhh rrhh_el_salvador > backup_rrhh.sql
+```
