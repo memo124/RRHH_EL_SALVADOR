@@ -52,11 +52,11 @@
       <div v-if="showModal" class="modal-overlay">
         <form v-submit-lock="save" class="modal-panel w-full max-w-2xl modal-body">
           <h3 class="modal-title">Nuevo Horario</h3>
-          <select v-model="form.ID_EMPRESA" required class="select-base">
-            <option v-for="e in empresas" :key="field(e, 'ID_EMPRESA', 'id_empresa')" :value="field(e, 'ID_EMPRESA', 'id_empresa')">
-              {{ fieldStr(e, 'NOMBREEMPRESA', 'nombreempresa') }}
-            </option>
-          </select>
+          <AsyncSelect
+            v-model="form.ID_EMPRESA"
+            catalog="empresas"
+            placeholder="Seleccionar empresa"
+          />
           <input v-model="form.NOMBRE_HORARIO" placeholder="Nombre del horario" required class="input-base" />
           <div class="space-y-2 max-h-64 overflow-y-auto">
             <div v-for="(d, i) in form.detalle" :key="i" class="grid grid-cols-6 gap-2 items-center text-xs text-slate-700 dark:text-slate-200">
@@ -88,7 +88,6 @@ import { field, fieldStr } from '../../utils/fields';
 
 const dias = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom' };
 const horarios = ref([]);
-const empresas = ref([]);
 const showModal = ref(false);
 const loading = ref(false);
 
@@ -112,7 +111,6 @@ const load = async () => {
   loading.value = true;
   try {
     horarios.value = (await api.get('/horarios')).data;
-    empresas.value = (await api.get('/empresas')).data;
   } finally {
     loading.value = false;
   }
@@ -122,7 +120,6 @@ onMounted(load);
 
 const openModal = () => {
   form.value = defaultForm();
-  if (empresas.value.length) form.value.ID_EMPRESA = field(empresas.value[0], 'ID_EMPRESA', 'id_empresa');
   showModal.value = true;
 };
 

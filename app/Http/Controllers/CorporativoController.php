@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class CorporativoController extends Controller
 {
@@ -24,6 +25,7 @@ class CorporativoController extends Controller
             'GIRO'            => 'nullable|string|max:500',
             'DIRECCION'       => 'nullable|string|max:500',
             'TELEFONO'        => 'nullable|string|max:25',
+            'URL_LOGO'        => 'nullable|string|max:2048',
         ]);
 
         $maxId = DB::table('EMPRESA')->max('ID_EMPRESA') ?? 0;
@@ -38,6 +40,7 @@ class CorporativoController extends Controller
             'GIRO'          => $request->GIRO,
             'DIRECCION'     => $request->DIRECCION,
             'TELEFONO'      => $request->TELEFONO,
+            'URL_LOGO'      => $request->URL_LOGO,
             'EMPRESAACTIVA' => true,
         ]);
 
@@ -54,6 +57,7 @@ class CorporativoController extends Controller
             'GIRO'           => 'nullable|string|max:500',
             'DIRECCION'      => 'nullable|string|max:500',
             'TELEFONO'       => 'nullable|string|max:25',
+            'URL_LOGO'       => 'nullable|string|max:2048',
             'EMPRESAACTIVA'  => 'boolean',
         ]);
 
@@ -65,6 +69,7 @@ class CorporativoController extends Controller
             'GIRO'           => $request->GIRO,
             'DIRECCION'      => $request->DIRECCION,
             'TELEFONO'       => $request->TELEFONO,
+            'URL_LOGO'       => $request->URL_LOGO,
             'EMPRESAACTIVA'  => $request->EMPRESAACTIVA ?? true,
         ]);
 
@@ -75,6 +80,32 @@ class CorporativoController extends Controller
     {
         DB::table('EMPRESA')->where('ID_EMPRESA', $id)->update(['EMPRESAACTIVA' => false]);
         return response()->json(['message' => 'Empresa inactivada correctamente.']);
+    }
+
+    public function uploadEmpresaLogo(Request $request, $id)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:jpeg,jpg,png,webp,svg|max:2048',
+        ]);
+
+        if (!DB::table('EMPRESA')->where('ID_EMPRESA', $id)->exists()) {
+            return response()->json(['error' => 'Empresa no encontrada.'], 404);
+        }
+
+        $file = $request->file('logo');
+        $ext = strtolower($file->getClientOriginalExtension());
+        $filename = "empresa_{$id}.{$ext}";
+
+        Storage::disk('public')->makeDirectory('logos');
+        Storage::disk('public')->putFileAs('logos', $file, $filename);
+
+        $url = Storage::url("logos/{$filename}");
+        DB::table('EMPRESA')->where('ID_EMPRESA', $id)->update(['URL_LOGO' => $url]);
+
+        return response()->json([
+            'URL_LOGO' => $url,
+            'message' => 'Logo actualizado correctamente.',
+        ]);
     }
 
     // ─── AREAS ────────────────────────────────────────────────────────────────

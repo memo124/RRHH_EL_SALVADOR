@@ -97,6 +97,8 @@ class CatalogosSueldosSeeder extends Seeder
             ['ID_EMPRESA' => 1],
             [
                 'NOMBREEMPRESA' => 'Empresa Principal RRHH',
+                'ABREVIATURA' => 'EPR',
+                'URL_LOGO' => '/images/logos/empresa-1.svg',
                 'EMPRESAACTIVA' => true
             ]
         );

@@ -7,9 +7,72 @@ use Illuminate\Support\Facades\DB;
 
 class EmpleadoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $empleados = DB::table('EMPLEADO')
+        $query = $this->empleadosQuery();
+
+        if ($search = trim($request->input('search', ''))) {
+            $this->applyEmpleadoSearch($query, $search);
+        }
+
+        $perPage = min(100, max(10, (int) $request->input('per_page', 25)));
+
+        return response()->json($query->paginate($perPage));
+    }
+
+    /**
+     * Opciones paginadas para AsyncSelect (búsqueda server-side).
+     */
+    public function select(Request $request)
+    {
+        $query = DB::table('EMPLEADO')
+            ->where('ESACTIVO', true)
+            ->select('ID_EMPLEADO', 'CODIGOEMPLEADO', 'NOMBRES', 'APELLIDO_1', 'APELLIDO_2', 'DUI')
+            ->orderBy('NOMBRES')
+            ->orderBy('APELLIDO_1');
+
+        if ($search = trim($request->input('q', $request->input('search', '')))) {
+            $this->applyEmpleadoSearch($query, $search);
+        }
+
+        $perPage = min(50, max(10, (int) $request->input('per_page', 30)));
+        $paginated = $query->paginate($perPage);
+
+        $data = collect($paginated->items())->map(function ($e) {
+            return [
+                'value' => $e->ID_EMPLEADO,
+                'label' => $this->formatEmpleadoLabel($e),
+            ];
+        })->values();
+
+        if ($request->filled('id')) {
+            $selectedId = (int) $request->input('id');
+            if (!$data->contains('value', $selectedId)) {
+                $selected = DB::table('EMPLEADO')
+                    ->where('ID_EMPLEADO', $selectedId)
+                    ->select('ID_EMPLEADO', 'CODIGOEMPLEADO', 'NOMBRES', 'APELLIDO_1', 'APELLIDO_2', 'DUI')
+                    ->first();
+                if ($selected) {
+                    $data->prepend([
+                        'value' => $selected->ID_EMPLEADO,
+                        'label' => $this->formatEmpleadoLabel($selected),
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'data' => $data->values(),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
+    }
+
+    private function empleadosQuery()
+    {
+        return DB::table('EMPLEADO')
             ->leftJoin('EMPRESA', 'EMPLEADO.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
             ->leftJoin('DEPARTAMENTO', 'EMPLEADO.ID_DEPARTAMENTO', '=', 'DEPARTAMENTO.ID_DEPARTAMENTO')
             ->leftJoin('CARGO', 'EMPLEADO.ID_CARGO', '=', 'CARGO.ID_CARGO')
@@ -21,10 +84,27 @@ class EmpleadoController extends Controller
                 'CARGO.NOMBRECARGO as CARGO_NOMBRE',
                 'TIPO_CONTRATACION.TIPOCONTRATACION as CONTRATACION_TIPO'
             )
-            ->orderBy('EMPLEADO.ID_EMPLEADO', 'desc')
-            ->get();
+            ->orderBy('EMPLEADO.ID_EMPLEADO', 'desc');
+    }
 
-        return response()->json($empleados);
+    private function applyEmpleadoSearch($query, string $search): void
+    {
+        $like = '%' . $search . '%';
+        $query->where(function ($q) use ($like) {
+            $q->where('EMPLEADO.NOMBRES', 'like', $like)
+                ->orWhere('EMPLEADO.APELLIDO_1', 'like', $like)
+                ->orWhere('EMPLEADO.APELLIDO_2', 'like', $like)
+                ->orWhere('EMPLEADO.CODIGOEMPLEADO', 'like', $like)
+                ->orWhere('EMPLEADO.DUI', 'like', $like);
+        });
+    }
+
+    private function formatEmpleadoLabel(object $e): string
+    {
+        $nombre = trim(($e->NOMBRES ?? '') . ' ' . ($e->APELLIDO_1 ?? '') . ' ' . ($e->APELLIDO_2 ?? ''));
+        $codigo = $e->CODIGOEMPLEADO ?? '';
+
+        return $codigo ? "{$codigo} — {$nombre}" : $nombre;
     }
 
     public function catalogs()

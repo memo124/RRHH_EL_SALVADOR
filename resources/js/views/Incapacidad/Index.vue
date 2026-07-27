@@ -235,19 +235,20 @@
           <form v-submit-lock="save" class="p-6 space-y-4">
             <div>
               <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Empleado</label>
-              <select v-model="form.ID_EMPLEADO" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700">
-                <option v-for="e in catalogs.empleados" :key="e.ID_EMPLEADO" :value="e.ID_EMPLEADO">
-                  {{ e.CODIGOEMPLEADO }} — {{ e.NOMBRES }} {{ e.APELLIDO_1 }}
-                </option>
-              </select>
+              <AsyncSelect
+                v-model="form.ID_EMPLEADO"
+                endpoint="/empleados/select"
+                placeholder="Seleccionar empleado"
+                search-placeholder="Buscar empleado…"
+              />
             </div>
             <div>
               <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tipo de incapacidad</label>
-              <select v-model="form.ID_TIPOINCAPACIDAD" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700">
-                <option v-for="t in catalogs.tipos" :key="t.ID_TIPOINCAPACIDAD" :value="t.ID_TIPOINCAPACIDAD">
-                  {{ t.NOMBRE_TIPO }}
-                </option>
-              </select>
+              <AsyncSelect
+                v-model="form.ID_TIPOINCAPACIDAD"
+                catalog="tipos-incapacidad"
+                placeholder="Seleccionar tipo"
+              />
             </div>
             <div>
               <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">N° Certificado ISSS</label>
@@ -316,7 +317,6 @@ import api from '../../services/api';
 const items = ref([]);
 const subsidios = ref([]);
 const subTotales = ref({ pendiente: 0, cobrado: 0, count_pendiente: 0 });
-const catalogs = ref({ empleados: [], tipos: [] });
 const showModal = ref(false);
 const showCobroModal = ref(false);
 const modalError = ref('');
@@ -379,8 +379,8 @@ const switchToSubsidios = () => {
 const openModal = () => {
   modalError.value = '';
   form.value = {
-    ID_EMPLEADO: catalogs.value.empleados[0]?.ID_EMPLEADO || null,
-    ID_TIPOINCAPACIDAD: catalogs.value.tipos[0]?.ID_TIPOINCAPACIDAD || null,
+    ID_EMPLEADO: null,
+    ID_TIPOINCAPACIDAD: null,
     NUMERO_CERTIFICADO_ISSS: '',
     FECHA_INICIO: '',
     FECHA_FIN: '',
@@ -428,8 +428,5 @@ const confirmarCobro = async () => {
   load();
 };
 
-onMounted(async () => {
-  catalogs.value = (await api.get('/incapacidades/catalogs')).data;
-  load();
-});
+onMounted(load);
 </script>

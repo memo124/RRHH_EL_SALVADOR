@@ -218,6 +218,12 @@
               <FormField label="Teléfono" v-model="form.TELEFONO" />
               <FormField label="Giro" v-model="form.GIRO" />
               <FormField label="Dirección" v-model="form.DIRECCION" />
+              <FormField label="URL Logo" v-model="form.URL_LOGO" placeholder="/images/logos/empresa-1.svg" />
+              <div v-if="isEditing" class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">Subir logo (PNG/JPG/SVG)</label>
+                <input type="file" accept="image/*" @change="onLogoSelected" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700" />
+                <img v-if="logoPreview" :src="logoPreview" alt="Vista previa logo" class="h-12 object-contain border rounded p-1 bg-white" />
+              </div>
             </template>
 
             <!-- AREA FIELDS -->
@@ -225,9 +231,11 @@
               <FormField label="Nombre Área *" v-model="form.NOMBREAREA" required />
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
-                <select v-model="form.ID_EMPRESA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="e in catalogos.empresas" :key="e.ID_EMPRESA" :value="e.ID_EMPRESA">{{ e.NOMBREEMPRESA }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_EMPRESA"
+                  catalog="empresas"
+                  placeholder="Seleccionar empresa"
+                />
               </div>
               <div class="flex items-center space-x-4 text-sm">
                 <label class="flex items-center space-x-2 cursor-pointer">
@@ -245,9 +253,11 @@
             <template v-else-if="activeTab === 'centros-costo'">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
-                <select v-model="form.ID_EMPRESA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="e in catalogos.empresas" :key="e.ID_EMPRESA" :value="e.ID_EMPRESA">{{ e.NOMBREEMPRESA }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_EMPRESA"
+                  catalog="empresas"
+                  placeholder="Seleccionar empresa"
+                />
               </div>
               <FormField label="Código *" v-model="form.CODIGO_CENTROCOSTO" required />
               <FormField label="Nombre *" v-model="form.NOMBRE_CENTROCOSTO" required />
@@ -259,22 +269,31 @@
               <FormField label="Nombre Departamento *" v-model="form.NOMBREDEPARTAMENTO" required />
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
-                <select v-model="form.ID_EMPRESA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="e in catalogos.empresas" :key="e.ID_EMPRESA" :value="e.ID_EMPRESA">{{ e.NOMBREEMPRESA }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_EMPRESA"
+                  catalog="empresas"
+                  placeholder="Seleccionar empresa"
+                />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Área *</label>
-                <select v-model="form.ID_AREA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="a in catalogos.areas" :key="a.ID_AREA" :value="a.ID_AREA">{{ a.NOMBREAREA }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_AREA"
+                  catalog="areas"
+                  :params="areaParams"
+                  :disabled="!form.ID_EMPRESA"
+                  placeholder="Seleccionar área"
+                />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Centro de Costo</label>
-                <select v-model="form.ID_CENTROCOSTO" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option :value="null">Ninguno</option>
-                  <option v-for="c in catalogos.centrosCosto" :key="c.ID_CENTROCOSTO" :value="c.ID_CENTROCOSTO">{{ c.NOMBRE_CENTROCOSTO }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_CENTROCOSTO"
+                  catalog="centros-costo"
+                  :params="centroCostoParams"
+                  nullable
+                  placeholder="Ninguno"
+                />
               </div>
               <FormField label="Cuenta Contable" v-model="form.CUENTACONTABLE" />
             </template>
@@ -284,9 +303,11 @@
               <FormField label="Nombre Cargo *" v-model="form.NOMBRECARGO" required />
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Departamento *</label>
-                <select v-model="form.ID_DEPARTAMENTO" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="d in catalogos.departamentos" :key="d.ID_DEPARTAMENTO" :value="d.ID_DEPARTAMENTO">{{ d.NOMBREDEPARTAMENTO }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_DEPARTAMENTO"
+                  catalog="departamentos"
+                  placeholder="Seleccionar departamento"
+                />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Nivel Jerárquico</label>
@@ -294,10 +315,12 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Cargo Padre</label>
-                <select v-model="form.ID_CARGO_PADRE" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option :value="null">Ninguno</option>
-                  <option v-for="c in catalogos.cargos" :key="c.ID_CARGO" :value="c.ID_CARGO">{{ c.NOMBRECARGO }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_CARGO_PADRE"
+                  catalog="cargos"
+                  nullable
+                  placeholder="Ninguno"
+                />
               </div>
             </template>
 
@@ -306,9 +329,11 @@
               <FormField label="Nombre Sucursal *" v-model="form.NOMBRESUCURSAL" required />
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
-                <select v-model="form.ID_EMPRESA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="e in catalogos.empresas" :key="e.ID_EMPRESA" :value="e.ID_EMPRESA">{{ e.NOMBREEMPRESA }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_EMPRESA"
+                  catalog="empresas"
+                  placeholder="Seleccionar empresa"
+                />
               </div>
               <FormField label="Dirección" v-model="form.DIRECCION" />
             </template>
@@ -318,9 +343,11 @@
               <FormField label="Nombre Bodega *" v-model="form.NOMBREBODEGA" required />
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
-                <select v-model="form.ID_EMPRESA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="e in catalogos.empresas" :key="e.ID_EMPRESA" :value="e.ID_EMPRESA">{{ e.NOMBREEMPRESA }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_EMPRESA"
+                  catalog="empresas"
+                  placeholder="Seleccionar empresa"
+                />
               </div>
             </template>
 
@@ -329,9 +356,11 @@
               <FormField label="Nombre Ruta *" v-model="form.NOMBRERUTA" required />
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
-                <select v-model="form.ID_EMPRESA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="e in catalogos.empresas" :key="e.ID_EMPRESA" :value="e.ID_EMPRESA">{{ e.NOMBREEMPRESA }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="form.ID_EMPRESA"
+                  catalog="empresas"
+                  placeholder="Seleccionar empresa"
+                />
               </div>
             </template>
 
@@ -382,6 +411,8 @@ const currentTab = computed(() => tabs.find(t => t.key === activeTab.value));
 const loading = ref(false);
 const search  = ref('');
 const showModal  = ref(false);
+const logoFile   = ref(null);
+const logoPreview = ref('');
 const isEditing  = ref(false);
 const modalError = ref('');
 const form = ref({});
@@ -392,6 +423,9 @@ const data = ref({
 });
 
 const catalogos = ref({ empresas: [], areas: [], centrosCosto: [], departamentos: [], cargos: [] });
+
+const areaParams = computed(() => (form.value.ID_EMPRESA ? { ID_EMPRESA: form.value.ID_EMPRESA } : {}));
+const centroCostoParams = computed(() => (form.value.ID_EMPRESA ? { ID_EMPRESA: form.value.ID_EMPRESA } : {}));
 
 const filtered = computed(() => {
   const key = currentTab.value?.search;
@@ -433,9 +467,15 @@ const loadAll = async () => {
 
 onMounted(loadAll);
 watch(activeTab, () => { search.value = ''; });
+watch(() => form.value.ID_EMPRESA, (next, prev) => {
+  if (prev != null && next !== prev && activeTab.value === 'departamentos') {
+    form.value.ID_AREA = null;
+    form.value.ID_CENTROCOSTO = null;
+  }
+});
 
 const defaultForms = {
-  empresas:      { NOMBREEMPRESA: '', ABREVIATURA: '', NUMERONIT: '', NUMEROREGISTRO: '', TELEFONO: '', GIRO: '', DIRECCION: '' },
+  empresas:      { NOMBREEMPRESA: '', ABREVIATURA: '', NUMERONIT: '', NUMEROREGISTRO: '', TELEFONO: '', GIRO: '', DIRECCION: '', URL_LOGO: '' },
   areas:         { NOMBREAREA: '', ID_EMPRESA: null, PRORRATEADA: false, ACTIVA: true },
   'centros-costo':{ ID_EMPRESA: null, CODIGO_CENTROCOSTO: '', NOMBRE_CENTROCOSTO: '', DESCRIPCION: '' },
   departamentos: { NOMBREDEPARTAMENTO: '', ID_EMPRESA: null, ID_AREA: null, ID_CENTROCOSTO: null, CUENTACONTABLE: '' },
@@ -453,16 +493,27 @@ const getIdKey = (tab) => {
 const openCreate = () => {
   isEditing.value = false;
   modalError.value = '';
+  logoFile.value = null;
+  logoPreview.value = '';
   form.value = { ...defaultForms[activeTab.value] };
-  if (catalogos.value.empresas.length) form.value.ID_EMPRESA = catalogos.value.empresas[0]?.ID_EMPRESA || null;
   showModal.value = true;
 };
 
 const openEdit = (r) => {
   isEditing.value = true;
   modalError.value = '';
+  logoFile.value = null;
+  logoPreview.value = r.URL_LOGO || '';
   form.value = { ...r };
   showModal.value = true;
+};
+
+const onLogoSelected = (event) => {
+  const file = event.target.files?.[0];
+  logoFile.value = file || null;
+  if (file) {
+    logoPreview.value = URL.createObjectURL(file);
+  }
 };
 
 const save = async () => {
@@ -471,10 +522,26 @@ const save = async () => {
   try {
     if (isEditing.value) {
       await api.put(`/${tab.api}/${form.value[idKey]}`, form.value);
+      if (activeTab.value === 'empresas' && logoFile.value) {
+        const fd = new FormData();
+        fd.append('logo', logoFile.value);
+        await api.post(`/empresas/${form.value[idKey]}/logo`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
     } else {
-      await api.post(`/${tab.api}`, form.value);
+      const res = await api.post(`/${tab.api}`, form.value);
+      if (activeTab.value === 'empresas' && logoFile.value && res.data?.ID_EMPRESA) {
+        const fd = new FormData();
+        fd.append('logo', logoFile.value);
+        await api.post(`/empresas/${res.data.ID_EMPRESA}/logo`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
     }
     showModal.value = false;
+    logoFile.value = null;
+    logoPreview.value = '';
     loadAll();
   } catch (err) {
     modalError.value = err.response?.data?.errors

@@ -2,12 +2,14 @@
 title RRHH El Salvador - Iniciando...
 cd /d "%~dp0"
 
-REM Usar PHP 8.2 de XAMPP (el proyecto requiere >= 8.2)
-set "PHP=C:\xampp\php\php.exe"
+REM Usar PHP 8.2 (ajuste la ruta segun su instalacion)
+REM AppServ:  set "PHP=C:\AppServ\php8.2\php.exe"
+REM XAMPP:    set "PHP=C:\xampp\php\php.exe"
+set "PHP=C:\AppServ\php8.2\php.exe"
 
 if not exist "%PHP%" (
-    echo [ERROR] No se encontro PHP 8.2 en C:\xampp\php\php.exe
-    echo Instale XAMPP con PHP 8.2 o edite la ruta PHP en iniciar.bat
+    echo [ERROR] No se encontro PHP 8.2 en %PHP%
+    echo Edite la variable PHP al inicio de iniciar.bat
     pause
     exit /b 1
 )

@@ -20,6 +20,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/theme', [AuthController::class, 'updateTheme']);
     Route::post('/logout',[AuthController::class, 'logout']);
 
+    Route::get('/catalogs/{type}/select', [App\Http\Controllers\CatalogSelectController::class, 'select']);
+
     // ── Tipo Contratación ──────────────────────────────────────────────────────
     Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/tipo-contratacion',     [TipoContratacionController::class, 'index']);
     Route::middleware('permission:SALARIAL_CREATE')->post  ('/tipo-contratacion',     [TipoContratacionController::class, 'store']);
@@ -42,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:CORP_VIEW')  ->get   ('/empresas',     [CorporativoController::class, 'indexEmpresas']);
     Route::middleware('permission:CORP_CREATE')->post  ('/empresas',     [CorporativoController::class, 'storeEmpresa']);
     Route::middleware('permission:CORP_UPDATE')->put   ('/empresas/{id}',[CorporativoController::class, 'updateEmpresa']);
+    Route::middleware('permission:CORP_UPDATE')->post  ('/empresas/{id}/logo', [CorporativoController::class, 'uploadEmpresaLogo']);
     Route::middleware('permission:CORP_DELETE')->delete('/empresas/{id}',[CorporativoController::class, 'destroyEmpresa']);
 
     // ── Corporativo – Áreas ───────────────────────────────────────────────────
@@ -191,6 +194,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Empleados ─────────────────────────────────────────────────────────────
     Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/empleados',          [App\Http\Controllers\EmpleadoController::class, 'index']);
+    Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/empleados/select',   [App\Http\Controllers\EmpleadoController::class, 'select']);
     Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/empleados/catalogs', [App\Http\Controllers\EmpleadoController::class, 'catalogs']);
     Route::middleware('permission:SALARIAL_CREATE')->post  ('/empleados',          [App\Http\Controllers\EmpleadoController::class, 'store']);
     Route::middleware('permission:SALARIAL_UPDATE')->put   ('/empleados/{id}',     [App\Http\Controllers\EmpleadoController::class, 'update']);
@@ -201,6 +205,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas',                       [App\Http\Controllers\PlanillaController::class, 'index']);
     Route::middleware('permission:SALARIAL_CREATE')->post ('/planillas',                      [App\Http\Controllers\PlanillaController::class, 'store']);
     Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/{id}',                  [App\Http\Controllers\PlanillaController::class, 'show']);
+    Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/{id}/detalles',         [App\Http\Controllers\PlanillaController::class, 'detalles']);
+    Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/{id}/empleados-select', [App\Http\Controllers\PlanillaController::class, 'empleadosSelect']);
     Route::middleware('permission:SALARIAL_UPDATE')->post ('/planillas/{id}/calcular',        [App\Http\Controllers\PlanillaController::class, 'calculate']);
     Route::middleware('permission:SALARIAL_UPDATE')->post ('/planillas/{id}/cerrar',           [App\Http\Controllers\PlanillaController::class, 'cerrar']);
     Route::middleware('permission:SALARIAL_UPDATE')->post ('/planillas/{id}/anular',          [App\Http\Controllers\PlanillaController::class, 'anular']);
@@ -209,6 +215,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:SALARIAL_CREATE')->post ('/planillas/{id}/horas-extras',    [App\Http\Controllers\DetalleHorasExtrasController::class, 'store']);
     Route::middleware('permission:SALARIAL_DELETE')->delete('/planillas/{planillaId}/horas-extras/{id}', [App\Http\Controllers\DetalleHorasExtrasController::class, 'destroy']);
     Route::middleware('permission:SALARIAL_UPDATE')->post ('/planillas/{id}/horas-extras/sync',[App\Http\Controllers\DetalleHorasExtrasController::class, 'syncFromAttendance']);
+    Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/{id}/archivo-banco/catalogo', [App\Http\Controllers\PlanillaBankExportController::class, 'catalog']);
+    Route::middleware('permission:SALARIAL_VIEW')->post  ('/planillas/{id}/archivo-banco/preview',  [App\Http\Controllers\PlanillaBankExportController::class, 'preview']);
+    Route::middleware('permission:SALARIAL_VIEW')->post  ('/planillas/{id}/archivo-banco/generar',  [App\Http\Controllers\PlanillaBankExportController::class, 'generate']);
 
     // ── Periodos Laborales ────────────────────────────────────────────────────
     Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/periodos-laborales',           [App\Http\Controllers\PeriodoLaboralController::class, 'index']);

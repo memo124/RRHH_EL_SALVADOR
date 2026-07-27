@@ -26,13 +26,13 @@
       </div>
 
       <!-- Loader State -->
-      <SkeletonTable v-if="loading" />
+      <SkeletonTable v-if="loading && !empleados.length" />
 
       <!-- Data Table -->
       <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
+        <div ref="empleadosScrollRef" class="overflow-x-auto max-h-[560px] overflow-y-auto">
           <table class="w-full text-left border-collapse">
-            <thead>
+            <thead class="sticky top-0 z-10">
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200 dark:border-slate-700">
                 <th class="px-6 py-4">Código</th>
                 <th class="px-6 py-4">Nombre Completo</th>
@@ -45,45 +45,60 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm text-slate-700 dark:text-slate-200">
-              <tr v-for="(emp, index) in filteredEmpleados" :key="emp.ID_EMPLEADO" :class="index % 2 === 0 ? 'table-row-even' : 'table-row-odd'" class="hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
-                <td class="px-6 py-4 font-mono text-xs">{{ emp.CODIGOEMPLEADO }}</td>
+              <tr v-if="empleadoPaddingTop > 0" aria-hidden="true">
+                <td colspan="8" :style="{ height: empleadoPaddingTop + 'px', padding: 0, border: 'none' }"></td>
+              </tr>
+              <tr v-for="virtualRow in empleadoVirtualRows" :key="empleados[virtualRow.index].ID_EMPLEADO" :class="virtualRow.index % 2 === 0 ? 'table-row-even' : 'table-row-odd'" class="hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                <td class="px-6 py-4 font-mono text-xs">{{ empleados[virtualRow.index].CODIGOEMPLEADO }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">
-                  {{ emp.NOMBRES }} {{ emp.APELLIDO_1 }} {{ emp.APELLIDO_2 || '' }}
+                  {{ empleados[virtualRow.index].NOMBRES }} {{ empleados[virtualRow.index].APELLIDO_1 }} {{ empleados[virtualRow.index].APELLIDO_2 || '' }}
                 </td>
-                <td class="px-6 py-4">{{ emp.DUI }}</td>
-                <td class="px-6 py-4">{{ emp.EMPRESA_NOMBRE || 'N/A' }}</td>
+                <td class="px-6 py-4">{{ empleados[virtualRow.index].DUI }}</td>
+                <td class="px-6 py-4">{{ empleados[virtualRow.index].EMPRESA_NOMBRE || 'N/A' }}</td>
                 <td class="px-6 py-4">
-                  <div class="font-semibold">{{ emp.CARGO_NOMBRE || 'N/A' }}</div>
-                  <div class="text-xs text-slate-500">{{ emp.DEPARTAMENTO_NOMBRE || 'N/A' }}</div>
+                  <div class="font-semibold">{{ empleados[virtualRow.index].CARGO_NOMBRE || 'N/A' }}</div>
+                  <div class="text-xs text-slate-500">{{ empleados[virtualRow.index].DEPARTAMENTO_NOMBRE || 'N/A' }}</div>
                 </td>
-                <td class="px-6 py-4 font-semibold">${{ Number(emp.SALARIOMENSUAL).toFixed(2) }}</td>
+                <td class="px-6 py-4 font-semibold">${{ Number(empleados[virtualRow.index].SALARIOMENSUAL).toFixed(2) }}</td>
                 <td class="px-6 py-4">
-                  <span :class="emp.ESACTIVO ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-200'" class="px-2.5 py-1 rounded-full text-xs font-semibold inline-block">
-                    {{ emp.ESACTIVO ? 'Activo' : 'Inactivo' }}
+                  <span :class="empleados[virtualRow.index].ESACTIVO ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-200'" class="px-2.5 py-1 rounded-full text-xs font-semibold inline-block">
+                    {{ empleados[virtualRow.index].ESACTIVO ? 'Activo' : 'Inactivo' }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-2">
                   <button
-                    @click="editEmpleado(emp)"
+                    @click="editEmpleado(empleados[virtualRow.index])"
                     class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 font-semibold text-xs transition-colors"
                   >
                     Editar
                   </button>
                   <button
-                    v-if="emp.ESACTIVO"
-                    @click="inactivateEmpleado(emp)"
+                    v-if="empleados[virtualRow.index].ESACTIVO"
+                    @click="inactivateEmpleado(empleados[virtualRow.index])"
                     class="text-rose-600 hover:text-rose-900 dark:text-rose-400 font-semibold text-xs transition-colors"
                   >
                     Inactivar
                   </button>
                 </td>
               </tr>
-              <tr v-if="filteredEmpleados.length === 0">
+              <tr v-if="empleadoPaddingBottom > 0" aria-hidden="true">
+                <td colspan="8" :style="{ height: empleadoPaddingBottom + 'px', padding: 0, border: 'none' }"></td>
+              </tr>
+              <tr v-if="!empleados.length && !loading">
                 <td colspan="8" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No se encontraron registros.</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="onPageChange"
+          @update:per-page="onPerPageChange"
+        />
       </div>
 
       <!-- Modal CRUD -->
@@ -114,10 +129,7 @@
 
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Género *</label>
-                <select v-model="form.GENERO" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option value="M">Masculino</option>
-                  <option value="F">Femenino</option>
-                </select>
+                <AsyncSelect v-model="form.GENERO" :options="GENERO_OPTIONS" :searchable="false" placeholder="Seleccionar género" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Fecha Nacimiento *</label>
@@ -167,27 +179,19 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
-                <select v-model="form.ID_EMPRESA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="emp in catalogs.empresas" :key="emp.ID_EMPRESA" :value="emp.ID_EMPRESA">{{ emp.NOMBREEMPRESA }}</option>
-                </select>
+                <AsyncSelect v-model="form.ID_EMPRESA" catalog="empresas" placeholder="Seleccionar empresa" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Departamento *</label>
-                <select v-model="form.ID_DEPARTAMENTO" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="dep in catalogs.departamentos" :key="dep.ID_DEPARTAMENTO" :value="dep.ID_DEPARTAMENTO">{{ dep.NOMBREDEPARTAMENTO }}</option>
-                </select>
+                <AsyncSelect v-model="form.ID_DEPARTAMENTO" catalog="departamentos" :params="deptoParams" placeholder="Seleccionar departamento" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Cargo *</label>
-                <select v-model="form.ID_CARGO" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="c in catalogs.cargos" :key="c.ID_CARGO" :value="c.ID_CARGO">{{ c.NOMBRECARGO }}</option>
-                </select>
+                <AsyncSelect v-model="form.ID_CARGO" catalog="cargos" :params="cargoParams" :disabled="!form.ID_DEPARTAMENTO" placeholder="Seleccionar cargo" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Tipo Contratación *</label>
-                <select v-model="form.ID_TIPOCONTRATACION" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option v-for="tc in catalogs.tipos_contratacion" :key="tc.ID_TIPOCONTRATACION" :value="tc.ID_TIPOCONTRATACION">{{ tc.TIPOCONTRATACION }}</option>
-                </select>
+                <AsyncSelect v-model="form.ID_TIPOCONTRATACION" catalog="tipos-contratacion" placeholder="Seleccionar tipo" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Fecha Ingreso *</label>
@@ -218,46 +222,25 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Departamento (Geográfico) *</label>
-                <select v-model="selectedGeoDepto" @change="onDeptoChange" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option value="">Seleccione Departamento</option>
-                  <option v-for="dep in catalogs.departamentos_geograficos" :key="dep.ID_DEPARTAMENTOPAIS" :value="dep.ID_DEPARTAMENTOPAIS">
-                    {{ dep.NOMBREDEPARTAMENTO }}
-                  </option>
-                </select>
+                <AsyncSelect v-model="selectedGeoDepto" catalog="departamentos-pais" placeholder="Seleccionar departamento" @change="onDeptoChange" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Municipio *</label>
-                <select v-model="selectedGeoMuni" @change="onMuniChange" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option value="">Seleccione Municipio</option>
-                  <option v-for="mun in filteredGeoMunis" :key="mun.ID_MUNICIPIO" :value="mun.ID_MUNICIPIO">
-                    {{ mun.NOMBREMUNICIPIO }}
-                  </option>
-                </select>
+                <AsyncSelect v-model="selectedGeoMuni" catalog="municipios" :params="muniParams" :disabled="!selectedGeoDepto" placeholder="Seleccionar municipio" @change="onMuniChange" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Distrito (Dirección MH) *</label>
-                <select v-model="form.ID_DISTRITO" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option value="">Seleccione Distrito</option>
-                  <option v-for="d in filteredGeoDistritos" :key="d.ID_DISTRITO" :value="d.ID_DISTRITO">
-                    {{ d.NOMBREDISTRITO }}
-                  </option>
-                </select>
+                <AsyncSelect v-model="form.ID_DISTRITO" catalog="distritos" :params="distritoParams" :disabled="!selectedGeoMuni" placeholder="Seleccionar distrito" />
               </div>
 
               <!-- AFP y Banco -->
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Institución AFP</label>
-                <select v-model="form.ID_AFP" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option :value="null">Ninguna</option>
-                  <option v-for="afp in catalogs.afps" :key="afp.ID_AFP" :value="afp.ID_AFP">{{ afp.NOMBREAFP }}</option>
-                </select>
+                <AsyncSelect v-model="form.ID_AFP" catalog="afps" nullable placeholder="Ninguna" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Banco Cuenta</label>
-                <select v-model="form.ID_BANCO" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option :value="null">Ninguno / Efectivo</option>
-                  <option v-for="b in catalogs.bancos" :key="b.ID_BANCO" :value="b.ID_BANCO">{{ b.NOMBREBANCO }}</option>
-                </select>
+                <AsyncSelect v-model="form.ID_BANCO" catalog="bancos" nullable placeholder="Ninguno / Efectivo" />
               </div>
               <div v-if="form.ID_BANCO">
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Número de Cuenta Bancaria *</label>
@@ -265,10 +248,7 @@
               </div>
               <div v-if="isEditing">
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Estado</label>
-                <select v-model="form.ESACTIVO" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                  <option :value="true">Activo</option>
-                  <option :value="false">Inactivo</option>
-                </select>
+                <AsyncSelect v-model="form.ESACTIVO" :options="ACTIVO_BOOL_OPTIONS" :searchable="false" placeholder="Estado" />
               </div>
             </div>
 
@@ -287,17 +267,56 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useVirtualizer } from '@tanstack/vue-virtual';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
+import { GENERO_OPTIONS, ACTIVO_BOOL_OPTIONS } from '../../utils/staticSelectOptions';
 import api from '../../services/api';
 
-const empleados = ref([]);
-const loading = ref(false);
+const {
+  items: empleados,
+  loading,
+  search: searchQuery,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: loadEmpleados,
+  setPage,
+  setSearch,
+  setPerPage,
+} = usePaginatedList('/empleados', { perPage: 25 });
+
+const empleadosScrollRef = ref(null);
+const empleadoVirtualizer = useVirtualizer(computed(() => ({
+  count: empleados.value.length,
+  getScrollElement: () => empleadosScrollRef.value,
+  estimateSize: () => 56,
+  overscan: 5,
+})));
+const empleadoVirtualRows = computed(() => empleadoVirtualizer.value.getVirtualItems());
+const empleadoPaddingTop = computed(() => empleadoVirtualRows.value[0]?.start ?? 0);
+const empleadoPaddingBottom = computed(() => {
+  const items = empleadoVirtualRows.value;
+  if (!items.length) return 0;
+  return empleadoVirtualizer.value.getTotalSize() - items[items.length - 1].end;
+});
+
+const onPageChange = (p) => setPage(p);
+const onPerPageChange = (n) => setPerPage(n);
+
+const deptoParams = computed(() => (form.value.ID_EMPRESA ? { ID_EMPRESA: form.value.ID_EMPRESA } : {}));
+const cargoParams = computed(() => (form.value.ID_DEPARTAMENTO ? { ID_DEPARTAMENTO: form.value.ID_DEPARTAMENTO } : {}));
+const muniParams = computed(() => (selectedGeoDepto.value ? { ID_DEPARTAMENTOPAIS: selectedGeoDepto.value } : {}));
+const distritoParams = computed(() => (selectedGeoMuni.value ? { ID_MUNICIPIO: selectedGeoMuni.value } : {}));
+
+watch(searchQuery, (q) => setSearch(q));
+
 const showModal = ref(false);
 const isEditing = ref(false);
 const modalError = ref('');
-const searchQuery = ref('');
-
 const selectedGeoDepto = ref('');
 const selectedGeoMuni = ref('');
 
@@ -342,18 +361,6 @@ const form = ref({
   NUMEROCUENTA: '',
   ESACTIVO: true
 });
-
-const loadEmpleados = async () => {
-  loading.value = true;
-  try {
-    const res = await api.get('/empleados');
-    empleados.value = res.data;
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
-};
 
 const loadCatalogs = async () => {
   try {
@@ -413,17 +420,6 @@ watch(
   },
   { deep: true }
 );
-
-const filteredEmpleados = computed(() => {
-  const query = searchQuery.value.toLowerCase().trim();
-  if (!query) return empleados.value;
-  return empleados.value.filter(emp => {
-    const fullName = `${emp.NOMBRES} ${emp.APELLIDO_1} ${emp.APELLIDO_2 || ''}`.toLowerCase();
-    return fullName.includes(query) ||
-           emp.CODIGOEMPLEADO.toLowerCase().includes(query) ||
-           emp.DUI.includes(query);
-  });
-});
 
 const openCreateModal = () => {
   isEditing.value = false;

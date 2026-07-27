@@ -84,21 +84,16 @@
           Sistema de Recursos Humanos
         </div>
         <div class="flex items-center space-x-4">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2" data-no-lock :title="themeHint">
             <label for="theme-preference" class="sr-only">Preferencia de tema</label>
-            <select
-              id="theme-preference"
-              data-no-lock
+            <AsyncSelect
               v-model="themePreference"
+              :options="THEME_OPTIONS"
+              :searchable="false"
+              placeholder="Tema"
+              input-class="!bg-slate-100 dark:!bg-slate-700"
               @change="onThemeChange"
-              class="text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              :title="themeHint"
-            >
-              <option value="auto">🕐 Automático (horario)</option>
-              <option value="system">💻 Seguir navegador</option>
-              <option value="light">☀️ Claro</option>
-              <option value="dark">🌙 Oscuro</option>
-            </select>
+            />
           </div>
           <div class="text-sm font-medium text-slate-600 dark:text-slate-300">
             {{ user?.username }}
@@ -152,6 +147,7 @@ import {
   setThemePreference,
   themePreferenceDescription,
 } from '../utils/theme';
+import { THEME_OPTIONS } from '../utils/staticSelectOptions';
 
 const user = ref(null);
 const stats = ref({});

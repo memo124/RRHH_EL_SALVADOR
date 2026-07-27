@@ -158,17 +158,21 @@
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-xs font-semibold uppercase mb-1">Modalidad *</label>
-                  <select v-model="form.MODALIDAD" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700">
-                    <option value="FIJA">Fija (autorizada)</option>
-                    <option value="ADICIONAL">Adicional (excedente)</option>
-                  </select>
+                  <AsyncSelect
+                    v-model="form.MODALIDAD"
+                    :options="MODALIDAD_HE_OPTIONS"
+                    :searchable="false"
+                    placeholder="Modalidad"
+                  />
                 </div>
                 <div>
                   <label class="block text-xs font-semibold uppercase mb-1">Jornada *</label>
-                  <select v-model="form.JORNADA" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700">
-                    <option value="DIURNA">Diurna (06:00 - 19:00)</option>
-                    <option value="NOCTURNA">Nocturna (19:00 - 06:00)</option>
-                  </select>
+                  <AsyncSelect
+                    v-model="form.JORNADA"
+                    :options="JORNADA_HE_OPTIONS"
+                    :searchable="false"
+                    placeholder="Jornada"
+                  />
                 </div>
               </div>
               <label class="flex items-center gap-2 text-sm">
@@ -199,6 +203,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { MODALIDAD_HE_OPTIONS, JORNADA_HE_OPTIONS } from '../../utils/staticSelectOptions';
 
 // Inline form helpers
 const FieldInput = {

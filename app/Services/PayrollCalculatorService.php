@@ -195,12 +195,41 @@ class PayrollCalculatorService
             $this->monthlyCeiling->empresaAplicaInsaforp($planilla->ID_EMPRESA)
         );
 
-        // 5. Descuentos y Préstamos
-        $prestamosCuota = DB::table('PRESTAMOS')
-            ->where('ID_EMPLEADO', $empleado->ID_EMPLEADO)
-            ->where('PRESTAMOESTADO', true)
-            ->where('SALDO_ACTUAL', '>', 0)
-            ->sum('CUOTA') ?? 0.00;
+        // 5. Descuentos y Préstamos (desglose dinámico para boletas e impresión)
+        $descuentosDetalle = [];
+
+        if ($afpEmpleado > 0) {
+            $descuentosDetalle[] = $this->lineaDescuento(2, 'AFP', 'LEY', $afpEmpleado);
+        }
+        if ($isssEmpleado > 0) {
+            $descuentosDetalle[] = $this->lineaDescuento(1, 'ISSS', 'LEY', $isssEmpleado);
+        }
+        if ($rentaEmpleado > 0) {
+            $descuentosDetalle[] = $this->lineaDescuento(3, 'Renta (ISR)', 'LEY', $rentaEmpleado);
+        }
+
+        $prestamosActivos = DB::table('PRESTAMOS')
+            ->join('TIPO_PRESTAMO', 'PRESTAMOS.ID_TIPOPRESTAMO', '=', 'TIPO_PRESTAMO.ID_TIPOPRESTAMO')
+            ->where('PRESTAMOS.ID_EMPLEADO', $empleado->ID_EMPLEADO)
+            ->where('PRESTAMOS.PRESTAMOESTADO', true)
+            ->where('PRESTAMOS.SALDO_ACTUAL', '>', 0)
+            ->select('PRESTAMOS.*', 'TIPO_PRESTAMO.NOMBREPRESTAMO')
+            ->get();
+
+        $prestamosCuota = 0.00;
+        foreach ($prestamosActivos as $prestamo) {
+            $cuota = (float) $prestamo->CUOTA;
+            if ($cuota <= 0) {
+                continue;
+            }
+            $prestamosCuota += $cuota;
+            $descuentosDetalle[] = $this->lineaDescuento(
+                (int) $prestamo->ID_TIPODESCUENTO,
+                $prestamo->NOMBREPRESTAMO,
+                'PRESTAMO',
+                $cuota
+            );
+        }
 
         $anticipos = DB::table('PRESTAMO_ABONO')
             ->join('PRESTAMOS', 'PRESTAMO_ABONO.ID_PRESTAMO', '=', 'PRESTAMOS.ID_PRESTAMO')
@@ -211,23 +240,46 @@ class PayrollCalculatorService
             ->whereNull('PRESTAMO_ABONO.ID_DETALLEPLANILLA')
             ->sum('PRESTAMO_ABONO.MONTOABONADO') ?? 0.00;
 
-        // Descuentos personalizados asignados al empleado
+        if ($anticipos > 0) {
+            $descuentosDetalle[] = $this->lineaDescuento(null, 'Anticipo / Abono préstamo', 'PRESTAMO', (float) $anticipos);
+        }
+
+        // Descuentos personalizados asignados al empleado (catálogo dinámico)
         $descuentosEmpleado = DB::table('DESCUENTO_EMPLEADO')
-            ->where('ID_EMPLEADO', $empleado->ID_EMPLEADO)
-            ->where('ESACTIVO', true)
-            ->where('FECHAINICIO', '<=', $fechaFinPeriodo)
+            ->join('TIPO_DESCUENTO', 'DESCUENTO_EMPLEADO.ID_TIPODESCUENTO', '=', 'TIPO_DESCUENTO.ID_TIPODESCUENTO')
+            ->where('DESCUENTO_EMPLEADO.ID_EMPLEADO', $empleado->ID_EMPLEADO)
+            ->where('DESCUENTO_EMPLEADO.ESACTIVO', true)
+            ->where('TIPO_DESCUENTO.ESACTIVO', true)
+            ->where('DESCUENTO_EMPLEADO.FECHAINICIO', '<=', $fechaFinPeriodo)
             ->where(function ($q) use ($fechaInicioPeriodo) {
-                $q->whereNull('FECHAFIN')->orWhere('FECHAFIN', '>=', $fechaInicioPeriodo);
+                $q->whereNull('DESCUENTO_EMPLEADO.FECHAFIN')
+                    ->orWhere('DESCUENTO_EMPLEADO.FECHAFIN', '>=', $fechaInicioPeriodo);
             })
+            ->select(
+                'DESCUENTO_EMPLEADO.*',
+                'TIPO_DESCUENTO.NOMBRETIPODESC',
+                'TIPO_DESCUENTO.CATEGORIA'
+            )
             ->get();
 
         $otrosDescuentos = 0.00;
         foreach ($descuentosEmpleado as $desc) {
             if ($desc->ES_PORCENTAJE) {
-                $otrosDescuentos += $salarioDias * ((float) $desc->PORCENTAJE / 100.00);
+                $montoDesc = $salarioDias * ((float) $desc->PORCENTAJE / 100.00);
             } else {
-                $otrosDescuentos += (float) $desc->MONTO;
+                $montoDesc = (float) $desc->MONTO;
             }
+            $montoDesc = round($montoDesc, 2);
+            if ($montoDesc <= 0) {
+                continue;
+            }
+            $otrosDescuentos += $montoDesc;
+            $descuentosDetalle[] = $this->lineaDescuento(
+                (int) $desc->ID_TIPODESCUENTO,
+                $desc->NOMBRETIPODESC,
+                $desc->CATEGORIA ?: 'DESCUENTO',
+                $montoDesc
+            );
         }
         $otrosDescuentos = round($otrosDescuentos, 2);
 
@@ -271,6 +323,20 @@ class PayrollCalculatorService
             'AFP_PATRONAL' => $afpPatronal,
             'ISSS_PATRONAL' => $isssPatronal,
             'INSAFORP_PATRONAL' => $insaforpPatronal,
+            'DESCUENTOS_DETALLE' => $descuentosDetalle,
+        ];
+    }
+
+    /**
+     * Construye una línea de descuento para persistencia e impresión.
+     */
+    protected function lineaDescuento(?int $tipoId, string $concepto, string $categoria, float $monto): array
+    {
+        return [
+            'ID_TIPODESCUENTO' => $tipoId,
+            'CONCEPTO' => $concepto,
+            'CATEGORIA' => $categoria,
+            'MONTO' => round($monto, 2),
         ];
     }
 
@@ -295,7 +361,7 @@ class PayrollCalculatorService
             return min((float) $count, $diasPeriodo);
         }
 
-        return min(30.0, $diasPeriodo);
+        return $diasPeriodo;
     }
 
     /**
@@ -308,11 +374,29 @@ class PayrollCalculatorService
         $monto = $aguinaldo['MONTO_AGUINALDO'];
         $tipoContrato = $empleado->tipoContratacion;
 
-        $prestamosCuota = DB::table('PRESTAMOS')
-            ->where('ID_EMPLEADO', $empleado->ID_EMPLEADO)
-            ->where('PRESTAMOESTADO', true)
-            ->where('SALDO_ACTUAL', '>', 0)
-            ->sum('CUOTA') ?? 0.00;
+        $prestamosActivos = DB::table('PRESTAMOS')
+            ->join('TIPO_PRESTAMO', 'PRESTAMOS.ID_TIPOPRESTAMO', '=', 'TIPO_PRESTAMO.ID_TIPOPRESTAMO')
+            ->where('PRESTAMOS.ID_EMPLEADO', $empleado->ID_EMPLEADO)
+            ->where('PRESTAMOS.PRESTAMOESTADO', true)
+            ->where('PRESTAMOS.SALDO_ACTUAL', '>', 0)
+            ->select('PRESTAMOS.*', 'TIPO_PRESTAMO.NOMBREPRESTAMO')
+            ->get();
+
+        $prestamosCuota = 0.00;
+        $descuentosDetalle = [];
+        foreach ($prestamosActivos as $prestamo) {
+            $cuota = (float) $prestamo->CUOTA;
+            if ($cuota <= 0) {
+                continue;
+            }
+            $prestamosCuota += $cuota;
+            $descuentosDetalle[] = $this->lineaDescuento(
+                (int) $prestamo->ID_TIPODESCUENTO,
+                $prestamo->NOMBREPRESTAMO,
+                'PRESTAMO',
+                $cuota
+            );
+        }
 
         $liquido = $monto - $prestamosCuota;
 
@@ -353,6 +437,7 @@ class PayrollCalculatorService
             'AFP_PATRONAL' => 0.00,
             'ISSS_PATRONAL' => 0.00,
             'INSAFORP_PATRONAL' => 0.00,
+            'DESCUENTOS_DETALLE' => $descuentosDetalle,
         ];
     }
 }

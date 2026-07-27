@@ -12,7 +12,8 @@ class PayrollMonthlyCeilingService
 
     /**
      * Obtiene el devengado gravado acumulado del mes para un empleado,
-     * excluyendo la planilla actual (planillas ya calculadas y no anuladas).
+     * sumando solo planillas de periodos anteriores dentro del mismo mes calendario
+     * (p. ej. 1ra quincena no debe incluir la 2da quincena ya calculada).
      */
     public function getDevengadoAcumuladoMes(int $empleadoId, Planilla $planilla): float
     {
@@ -23,6 +24,7 @@ class PayrollMonthlyCeilingService
 
         $mes = (int) date('n', strtotime($periodo->FECHAFIN));
         $anio = (int) date('Y', strtotime($periodo->FECHAFIN));
+        $inicioPeriodoActual = $periodo->FECHAINICIO;
 
         $sum = DB::table('DETALLE_PLANILLA')
             ->join('PLANILLA', 'DETALLE_PLANILLA.ID_PLANILLA', '=', 'PLANILLA.ID_PLANILLA')
@@ -33,6 +35,7 @@ class PayrollMonthlyCeilingService
             ->where('PLANILLA.RECALCULADA', true)
             ->whereRaw('EXTRACT(MONTH FROM "PERIODO_LABORAL"."FECHAFIN") = ?', [$mes])
             ->whereRaw('EXTRACT(YEAR FROM "PERIODO_LABORAL"."FECHAFIN") = ?', [$anio])
+            ->where('PERIODO_LABORAL.FECHAFIN', '<', $inicioPeriodoActual)
             ->sum('DETALLE_PLANILLA.DEVENGADO_GRAVADO');
 
         return (float) ($sum ?? 0);

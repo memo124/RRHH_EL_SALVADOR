@@ -27,12 +27,14 @@
       <div class="flex flex-wrap gap-4 items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
         <div class="flex-1 min-w-[200px]">
           <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Filtrar por empleado</label>
-          <select v-model="filtroEmpleado" @change="loadTabData" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-            <option :value="null">Todos los empleados</option>
-            <option v-for="emp in catalogs.empleados" :key="emp.ID_EMPLEADO" :value="emp.ID_EMPLEADO">
-              {{ emp.CODIGOEMPLEADO }} — {{ emp.NOMBRE_COMPLETO }}
-            </option>
-          </select>
+          <AsyncSelect
+            v-model="filtroEmpleado"
+            endpoint="/empleados/select"
+            nullable
+            placeholder="Todos los empleados"
+            search-placeholder="Buscar empleado…"
+            @change="loadTabData"
+          />
         </div>
         <label class="flex items-center gap-2 text-sm mt-5">
           <input type="checkbox" v-model="soloActivos" @change="loadTabData" />
@@ -203,25 +205,29 @@
           <form v-submit-lock="savePrestamo" class="p-6 space-y-4">
             <div v-if="!editingPrestamo">
               <label class="block text-xs font-semibold uppercase mb-1">Empleado *</label>
-              <select v-model="prestamoForm.ID_EMPLEADO" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                <option :value="null" disabled>Seleccione...</option>
-                <option v-for="emp in catalogs.empleados" :key="emp.ID_EMPLEADO" :value="emp.ID_EMPLEADO">
-                  {{ emp.CODIGOEMPLEADO }} — {{ emp.NOMBRE_COMPLETO }}
-                </option>
-              </select>
+              <AsyncSelect
+                v-model="prestamoForm.ID_EMPLEADO"
+                endpoint="/empleados/select"
+                placeholder="Seleccionar empleado"
+                search-placeholder="Buscar empleado…"
+              />
             </div>
             <div v-if="!editingPrestamo" class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-semibold uppercase mb-1">Tipo Préstamo *</label>
-                <select v-model="prestamoForm.ID_TIPOPRESTAMO" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                  <option v-for="t in catalogs.tiposPrestamo" :key="t.ID_TIPOPRESTAMO" :value="t.ID_TIPOPRESTAMO">{{ t.NOMBREPRESTAMO }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="prestamoForm.ID_TIPOPRESTAMO"
+                  catalog="tipos-prestamo"
+                  placeholder="Seleccionar tipo"
+                />
               </div>
               <div>
                 <label class="block text-xs font-semibold uppercase mb-1">Tipo Descuento *</label>
-                <select v-model="prestamoForm.ID_TIPODESCUENTO" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                  <option v-for="t in catalogs.tiposDescuentoPrestamo" :key="t.ID_TIPODESCUENTO" :value="t.ID_TIPODESCUENTO">{{ t.NOMBRETIPODESC }}</option>
-                </select>
+                <AsyncSelect
+                  v-model="prestamoForm.ID_TIPODESCUENTO"
+                  catalog="tipos-descuento-prestamo"
+                  placeholder="Seleccionar tipo"
+                />
               </div>
             </div>
             <div v-if="!editingPrestamo" class="grid grid-cols-2 gap-4">
@@ -268,18 +274,20 @@
           <form v-submit-lock="saveDescuento" class="p-6 space-y-4">
             <div v-if="!editingDescuento">
               <label class="block text-xs font-semibold uppercase mb-1">Empleado *</label>
-              <select v-model="descuentoForm.ID_EMPLEADO" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                <option :value="null" disabled>Seleccione...</option>
-                <option v-for="emp in catalogs.empleados" :key="emp.ID_EMPLEADO" :value="emp.ID_EMPLEADO">
-                  {{ emp.CODIGOEMPLEADO }} — {{ emp.NOMBRE_COMPLETO }}
-                </option>
-              </select>
+              <AsyncSelect
+                v-model="descuentoForm.ID_EMPLEADO"
+                endpoint="/empleados/select"
+                placeholder="Seleccionar empleado"
+                search-placeholder="Buscar empleado…"
+              />
             </div>
             <div>
               <label class="block text-xs font-semibold uppercase mb-1">Tipo Descuento *</label>
-              <select v-model="descuentoForm.ID_TIPODESCUENTO" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                <option v-for="t in catalogs.tiposDescuento" :key="t.ID_TIPODESCUENTO" :value="t.ID_TIPODESCUENTO">{{ t.NOMBRETIPODESC }}</option>
-              </select>
+              <AsyncSelect
+                v-model="descuentoForm.ID_TIPODESCUENTO"
+                catalog="tipos-descuento"
+                placeholder="Seleccionar tipo"
+              />
             </div>
             <label class="flex items-center gap-2 text-sm">
               <input type="checkbox" v-model="descuentoForm.ES_PORCENTAJE" />
@@ -336,18 +344,20 @@
           <form v-submit-lock="saveIngreso" class="p-6 space-y-4">
             <div v-if="!editingIngreso">
               <label class="block text-xs font-semibold uppercase mb-1">Empleado *</label>
-              <select v-model="ingresoForm.ID_EMPLEADO" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                <option :value="null" disabled>Seleccione...</option>
-                <option v-for="emp in catalogs.empleados" :key="emp.ID_EMPLEADO" :value="emp.ID_EMPLEADO">
-                  {{ emp.CODIGOEMPLEADO }} — {{ emp.NOMBRE_COMPLETO }}
-                </option>
-              </select>
+              <AsyncSelect
+                v-model="ingresoForm.ID_EMPLEADO"
+                endpoint="/empleados/select"
+                placeholder="Seleccionar empleado"
+                search-placeholder="Buscar empleado…"
+              />
             </div>
             <div>
               <label class="block text-xs font-semibold uppercase mb-1">Tipo Ingreso *</label>
-              <select v-model="ingresoForm.ID_TIPOINGRESO" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                <option v-for="t in catalogs.tiposIngreso" :key="t.ID_TIPOINGRESO" :value="t.ID_TIPOINGRESO">{{ t.TIPOINGRESO }}</option>
-              </select>
+              <AsyncSelect
+                v-model="ingresoForm.ID_TIPOINGRESO"
+                catalog="tipos-ingreso"
+                placeholder="Seleccionar tipo"
+              />
             </div>
             <div>
               <label class="block text-xs font-semibold uppercase mb-1">Monto ($) *</label>
@@ -399,7 +409,6 @@ const filtroEmpleado = ref(null);
 const soloActivos = ref(true);
 const modalError = ref('');
 
-const catalogs = ref({ empleados: [], tiposDescuento: [], tiposDescuentoPrestamo: [], tiposIngreso: [], tiposPrestamo: [] });
 const prestamos = ref([]);
 const descuentos = ref([]);
 const ingresos = ref([]);
@@ -423,11 +432,6 @@ const queryParams = () => {
   if (filtroEmpleado.value) p.ID_EMPLEADO = filtroEmpleado.value;
   if (soloActivos.value) p.solo_activos = 1;
   return p;
-};
-
-const loadCatalogs = async () => {
-  const res = await api.get('/conceptos-empleado/catalogs');
-  catalogs.value = res.data;
 };
 
 const loadTabData = async () => {
@@ -454,10 +458,7 @@ const loadTabData = async () => {
 
 watch(activeTab, loadTabData);
 
-onMounted(async () => {
-  await loadCatalogs();
-  await loadTabData();
-});
+onMounted(loadTabData);
 
 // Préstamos
 const openPrestamoModal = (p = null) => {

@@ -71,7 +71,7 @@ async function runLocked(el, fn, event) {
 
 /** Bloqueo global: spinner en el botón pulsado mientras hay petición API activa. */
 export function installGlobalButtonLock(isLoadingRef) {
-  const pendingButtons = new WeakSet();
+  const pendingButtons = new Set();
   let activeButton = null;
 
   const releaseButton = (btn) => {
@@ -83,6 +83,14 @@ export function installGlobalButtonLock(isLoadingRef) {
     if (activeButton === btn) {
       activeButton = null;
     }
+  };
+
+  const releaseAllPending = () => {
+    for (const btn of pendingButtons) {
+      setBusyVisual(btn, false);
+    }
+    pendingButtons.clear();
+    activeButton = null;
   };
 
   document.addEventListener(
@@ -103,7 +111,7 @@ export function installGlobalButtonLock(isLoadingRef) {
       activeButton = btn;
 
       setTimeout(() => {
-        if (activeButton === btn && !isLoadingRef.value) {
+        if (pendingButtons.has(btn) && !isLoadingRef.value) {
           releaseButton(btn);
         }
       }, 250);
@@ -112,15 +120,14 @@ export function installGlobalButtonLock(isLoadingRef) {
   );
 
   watch(isLoadingRef, (loading) => {
-    if (!activeButton) {
+    if (loading) {
+      if (activeButton) {
+        setBusyVisual(activeButton, true);
+      }
       return;
     }
 
-    if (loading) {
-      setBusyVisual(activeButton, true);
-    } else {
-      releaseButton(activeButton);
-    }
+    releaseAllPending();
   });
 }
 

@@ -23,6 +23,9 @@ class DatabaseSeeder extends Seeder
             HorasExtrasSeeder::class,
             TipoPlanillaSeeder::class,
             CatalogosSueldosSeeder::class,
+            DemoNominaSeeder::class,
+            DemoNominaMasivaSeeder::class,
+            DemoQuincenalIsssSeeder::class,
             UsuarioSeeder::class,
         ]);
     }

@@ -95,16 +95,19 @@
       <div v-if="showMarc" class="modal-overlay">
         <form v-submit-lock="saveMarc" class="modal-panel w-full max-w-md modal-body">
           <h3 class="modal-title">Nueva Marcación</h3>
-          <select v-model="marcForm.ID_EMPLEADO" required class="select-base">
-            <option v-for="e in catalogs.empleados" :key="field(e, 'ID_EMPLEADO', 'id_empleado')" :value="field(e, 'ID_EMPLEADO', 'id_empleado')">
-              {{ fieldStr(e, 'CODIGOEMPLEADO', 'codigoempleado') }} — {{ fieldStr(e, 'NOMBRES', 'nombres') }}
-            </option>
-          </select>
+          <AsyncSelect
+            v-model="marcForm.ID_EMPLEADO"
+            endpoint="/empleados/select"
+            placeholder="Seleccionar empleado"
+            search-placeholder="Buscar empleado…"
+          />
           <input v-model="marcForm.FECHA_HORA_MARCACION" type="datetime-local" required class="input-base" />
-          <select v-model="marcForm.TIPO_MARCACION" class="select-base">
-            <option value="ENTRADA">Entrada</option>
-            <option value="SALIDA">Salida</option>
-          </select>
+          <AsyncSelect
+            v-model="marcForm.TIPO_MARCACION"
+            :options="TIPO_MARCACION_OPTIONS"
+            :searchable="false"
+            placeholder="Tipo de marcación"
+          />
           <div class="flex justify-end gap-2">
             <button data-no-lock type="button" @click="closeMarcModal" class="btn-secondary">Cancelar</button>
             <button type="submit" class="btn-primary">Guardar</button>
@@ -120,12 +123,12 @@ import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { TIPO_MARCACION_OPTIONS } from '../../utils/staticSelectOptions';
 import { field, fieldStr } from '../../utils/fields';
 
 const tab = ref('marcaciones');
 const marcaciones = ref([]);
 const asistencias = ref([]);
-const catalogs = ref({ empleados: [] });
 const showMarc = ref(false);
 const msg = ref('');
 const loadingMarc = ref(false);
@@ -156,18 +159,11 @@ const loadMarcaciones = async () => {
 };
 
 onMounted(async () => {
-  catalogs.value = (await api.get('/asistencia/catalogs')).data;
-  if (catalogs.value.empleados?.length) {
-    marcForm.value.ID_EMPLEADO = field(catalogs.value.empleados[0], 'ID_EMPLEADO', 'id_empleado');
-  }
   await loadMarcaciones();
 });
 
 const openMarcModal = () => {
   marcForm.value = defaultMarcForm();
-  if (catalogs.value.empleados?.length) {
-    marcForm.value.ID_EMPLEADO = field(catalogs.value.empleados[0], 'ID_EMPLEADO', 'id_empleado');
-  }
   showMarc.value = true;
 };
 
@@ -186,6 +182,10 @@ const loadAsistencia = async () => {
 };
 
 const saveMarc = async () => {
+  if (!marcForm.value.ID_EMPLEADO) {
+    alert('Seleccione un empleado.');
+    return;
+  }
   await api.post('/marcaciones', marcForm.value);
   closeMarcModal();
   await loadMarcaciones();

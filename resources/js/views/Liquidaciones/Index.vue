@@ -48,12 +48,13 @@
 
             <div>
               <label class="label-base">Empleado</label>
-              <select v-model="form.ID_EMPLEADO" @change="preview" class="select-base">
-                <option :value="null" disabled>Seleccione empleado</option>
-                <option v-for="e in empleados" :key="field(e, 'ID_EMPLEADO', 'id_empleado')" :value="field(e, 'ID_EMPLEADO', 'id_empleado')">
-                  {{ fieldStr(e, 'NOMBRES', 'nombres') }} {{ fieldStr(e, 'APELLIDO_1', 'apellido_1') }}
-                </option>
-              </select>
+              <AsyncSelect
+                v-model="form.ID_EMPLEADO"
+                endpoint="/empleados/select"
+                placeholder="Seleccionar empleado"
+                search-placeholder="Buscar empleado…"
+                @update:model-value="preview"
+              />
             </div>
 
             <div>
@@ -95,11 +96,11 @@
 import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AsyncSelect from '../../components/AsyncSelect.vue';
 import api from '../../services/api';
 import { field, fieldStr } from '../../utils/fields';
 
 const items = ref([]);
-const empleados = ref([]);
 const showCalc = ref(false);
 const previewData = ref(null);
 const modalError = ref('');
@@ -121,7 +122,6 @@ const load = async () => {
   loading.value = true;
   try {
     items.value = (await api.get('/liquidaciones')).data;
-    empleados.value = (await api.get('/empleados')).data.filter((e) => field(e, 'ESACTIVO', 'esactivo'));
   } finally {
     loading.value = false;
   }
@@ -133,9 +133,6 @@ const resetForm = () => {
   form.value = defaultForm();
   previewData.value = null;
   modalError.value = '';
-  if (empleados.value.length) {
-    form.value.ID_EMPLEADO = field(empleados.value[0], 'ID_EMPLEADO', 'id_empleado');
-  }
 };
 
 const openCalc = async () => {

@@ -12,12 +12,14 @@
         </div>
       </div>
 
-      <select v-model="filtroEmpresa" @change="load" class="select-base max-w-xs">
-        <option :value="null">Todas las empresas</option>
-        <option v-for="e in empresas" :key="field(e, 'ID_EMPRESA', 'id_empresa')" :value="field(e, 'ID_EMPRESA', 'id_empresa')">
-          {{ fieldStr(e, 'NOMBREEMPRESA', 'nombreempresa') }}
-        </option>
-      </select>
+      <AsyncSelect
+        v-model="filtroEmpresa"
+        catalog="empresas"
+        nullable
+        placeholder="Todas las empresas"
+        wrapper-class="max-w-xs"
+        @change="load"
+      />
 
       <SkeletonTable v-if="loading" :cols="4" />
 
@@ -45,11 +47,11 @@
       <div v-if="showModal" class="modal-overlay">
         <form v-submit-lock="save" class="modal-panel w-full max-w-md modal-body">
           <h3 class="modal-title">Nuevo parámetro</h3>
-          <select v-model="form.ID_EMPRESA" required class="select-base">
-            <option v-for="e in empresas" :key="field(e, 'ID_EMPRESA', 'id_empresa')" :value="field(e, 'ID_EMPRESA', 'id_empresa')">
-              {{ fieldStr(e, 'NOMBREEMPRESA', 'nombreempresa') }}
-            </option>
-          </select>
+          <AsyncSelect
+            v-model="form.ID_EMPRESA"
+            catalog="empresas"
+            placeholder="Seleccionar empresa"
+          />
           <div class="grid grid-cols-3 gap-4">
             <input v-model.number="form.DESDE_ANOS" type="number" min="0" placeholder="Desde" required class="input-base" />
             <input v-model.number="form.HASTA_ANOS" type="number" min="0" placeholder="Hasta" required class="input-base" />
@@ -73,7 +75,6 @@ import api from '../../services/api';
 import { field, fieldStr } from '../../utils/fields';
 
 const items = ref([]);
-const empresas = ref([]);
 const showModal = ref(false);
 const filtroEmpresa = ref(null);
 const loading = ref(false);
@@ -91,15 +92,11 @@ const load = async () => {
   }
 };
 
-onMounted(async () => {
-  empresas.value = (await api.get('/empresas')).data;
-  if (empresas.value.length) form.value.ID_EMPRESA = field(empresas.value[0], 'ID_EMPRESA', 'id_empresa');
-  load();
-});
+onMounted(load);
 
 const openModal = () => {
   form.value = defaultForm();
-  if (empresas.value.length) form.value.ID_EMPRESA = field(empresas.value[0], 'ID_EMPRESA', 'id_empresa');
+  if (filtroEmpresa.value) form.value.ID_EMPRESA = filtroEmpresa.value;
   showModal.value = true;
 };
 
@@ -115,10 +112,12 @@ const save = async () => {
 };
 
 const seedDefault = async () => {
-  const id = filtroEmpresa.value || field(empresas.value[0], 'ID_EMPRESA', 'id_empresa');
-  if (id) {
-    await api.post(`/parametros-aguinaldo/seed/${id}`);
-    load();
+  const id = filtroEmpresa.value;
+  if (!id) {
+    alert('Seleccione una empresa para cargar la tabla legal.');
+    return;
   }
+  await api.post(`/parametros-aguinaldo/seed/${id}`);
+  load();
 };
 </script>

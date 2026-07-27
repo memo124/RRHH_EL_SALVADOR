@@ -148,12 +148,13 @@
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Asociar Empleado</label>
-              <select v-model="userForm.ID_EMPLEADO" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
-                <option :value="null">Ninguno</option>
-                <option v-for="emp in empleados" :key="emp.ID_EMPLEADO" :value="emp.ID_EMPLEADO">
-                  {{ emp.NOMBRES }} {{ emp.APELLIDO_1 }}
-                </option>
-              </select>
+              <AsyncSelect
+                v-model="userForm.ID_EMPLEADO"
+                endpoint="/empleados/select"
+                placeholder="Ninguno"
+                search-placeholder="Buscar empleado…"
+                nullable
+              />
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Roles *</label>
@@ -167,17 +168,21 @@
             <div v-if="isEditingUser" class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Activo</label>
-                <select v-model="userForm.ESACTIVO" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                  <option :value="true">Sí</option>
-                  <option :value="false">No</option>
-                </select>
+                <AsyncSelect
+                  v-model="userForm.ESACTIVO"
+                  :options="SI_NO_BOOL_OPTIONS"
+                  :searchable="false"
+                  placeholder="Activo"
+                />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Bloqueado</label>
-                <select v-model="userForm.BLOQUEADO" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                  <option :value="false">No</option>
-                  <option :value="true">Sí</option>
-                </select>
+                <AsyncSelect
+                  v-model="userForm.BLOQUEADO"
+                  :options="SI_NO_BOOL_OPTIONS"
+                  :searchable="false"
+                  placeholder="Bloqueado"
+                />
               </div>
             </div>
             <div v-if="userModalError" class="text-xs text-red-500 font-semibold bg-red-50 p-2 rounded">{{ userModalError }}</div>
@@ -233,10 +238,12 @@
             </div>
             <div v-if="isEditingRol">
               <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Estado</label>
-              <select v-model="rolForm.ESACTIVO" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                <option :value="true">Activo</option>
-                <option :value="false">Inactivo</option>
-              </select>
+              <AsyncSelect
+                v-model="rolForm.ESACTIVO"
+                :options="ACTIVO_BOOL_OPTIONS"
+                :searchable="false"
+                placeholder="Estado"
+              />
             </div>
             <div v-if="rolModalError" class="text-xs text-red-500 font-semibold bg-red-50 p-2 rounded">{{ rolModalError }}</div>
             <div class="flex justify-end space-x-3 pt-4 border-t">
@@ -288,6 +295,7 @@ import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { SI_NO_BOOL_OPTIONS, ACTIVO_BOOL_OPTIONS } from '../../utils/staticSelectOptions';
 
 const tabs = [
   { key: 'usuarios', label: 'Usuarios' },
@@ -299,7 +307,6 @@ const activeTab = ref('usuarios');
 const usuarios  = ref([]);
 const roles     = ref([]);
 const permisos  = ref([]);
-const empleados = ref([]);
 const loading   = ref(false);
 
 // ── Usuario ──────────────────────────────────────────────────────────────────
@@ -326,16 +333,14 @@ const selectedRolPermissions= ref([]);
 const loadData = async () => {
   loading.value = true;
   try {
-    const [usrRes, rolRes, permRes, empRes] = await Promise.all([
+    const [usrRes, rolRes, permRes] = await Promise.all([
       api.get('/usuarios'),
       api.get('/roles'),
       api.get('/permisos-list'),
-      api.get('/empleados'),
     ]);
     usuarios.value  = usrRes.data;
     roles.value     = rolRes.data;
     permisos.value  = permRes.data;
-    empleados.value = empRes.data;
   } catch (err) {
     console.error(err);
   } finally {
