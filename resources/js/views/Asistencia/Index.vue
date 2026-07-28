@@ -21,7 +21,7 @@
         <button @click="openMarcModal" class="btn-primary">+ Registrar Marcación</button>
         <SkeletonTable v-if="loadingMarc" :cols="4" :no-header="true" />
         <div v-else class="table-shell">
-          <table class="table-base">
+          <table v-table-cards class="table-cards table-base">
             <thead>
               <tr class="table-head-row">
                 <th class="table-head-cell">Empleado</th>
@@ -42,6 +42,15 @@
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="marcPage"
+            :last-page="marcLastPage"
+            :per-page="marcPerPage"
+            :total="marcTotal"
+            :loading="loadingMarc"
+            @update:page="setMarcPage"
+            @update:per-page="setMarcPerPage"
+          />
         </div>
       </div>
 
@@ -49,11 +58,11 @@
         <div class="flex flex-wrap gap-4">
           <input v-model="filtro.fecha_inicio" type="date" class="input-base max-w-xs" />
           <input v-model="filtro.fecha_fin" type="date" class="input-base max-w-xs" />
-          <button @click="loadAsistencia" class="btn-primary">Consultar</button>
+          <button @click="reloadAsistencia" class="btn-primary">Consultar</button>
         </div>
         <SkeletonTable v-if="loadingAsist" :cols="7" :no-header="true" />
         <div v-else class="table-shell">
-          <table class="table-base">
+          <table v-table-cards class="table-cards table-base">
             <thead>
               <tr class="table-head-row">
                 <th class="table-head-cell">Empleado</th>
@@ -79,6 +88,15 @@
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="asistPage"
+            :last-page="asistLastPage"
+            :per-page="asistPerPage"
+            :total="asistTotal"
+            :loading="loadingAsist"
+            @update:page="setAsistPage"
+            @update:per-page="setAsistPerPage"
+          />
         </div>
       </div>
 
@@ -92,8 +110,8 @@
         <p v-if="msg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ msg }}</p>
       </div>
 
-      <div v-if="showMarc" class="modal-overlay">
-        <form v-submit-lock="saveMarc" class="modal-panel w-full max-w-md modal-body">
+      <AppModalShell :open="showMarc" @close="closeMarcModal">
+        <form v-submit-lock="saveMarc" class="modal-panel w-full max-w-md mx-auto modal-body">
           <h3 class="modal-title">Nueva Marcación</h3>
           <AsyncSelect
             v-model="marcForm.ID_EMPLEADO"
@@ -113,31 +131,56 @@
             <button type="submit" class="btn-primary">Guardar</button>
           </div>
         </form>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { TIPO_MARCACION_OPTIONS } from '../../utils/staticSelectOptions';
 import { field, fieldStr } from '../../utils/fields';
 
 const tab = ref('marcaciones');
-const marcaciones = ref([]);
-const asistencias = ref([]);
 const showMarc = ref(false);
 const msg = ref('');
-const loadingMarc = ref(false);
-const loadingAsist = ref(false);
 
 const hoy = new Date().toISOString().slice(0, 10);
 const filtro = ref({ fecha_inicio: hoy, fecha_fin: hoy });
 const procesar = ref({ fecha_inicio: hoy, fecha_fin: hoy });
+
+const asistParams = computed(() => ({ ...filtro.value }));
+
+const {
+  items: marcaciones,
+  loading: loadingMarc,
+  page: marcPage,
+  perPage: marcPerPage,
+  total: marcTotal,
+  lastPage: marcLastPage,
+  fetch: reloadMarcaciones,
+  setPage: setMarcPage,
+  setPerPage: setMarcPerPage,
+} = usePaginatedList('/marcaciones/pendientes', { perPage: 25 });
+
+const {
+  items: asistencias,
+  loading: loadingAsist,
+  page: asistPage,
+  perPage: asistPerPage,
+  total: asistTotal,
+  lastPage: asistLastPage,
+  fetch: reloadAsistencia,
+  setPage: setAsistPage,
+  setPerPage: setAsistPerPage,
+} = usePaginatedList('/asistencia', { perPage: 25, params: asistParams });
 
 const defaultMarcForm = () => ({
   ID_EMPLEADO: null,
@@ -150,18 +193,12 @@ const marcForm = ref(defaultMarcForm());
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('es-SV') : '');
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString('es-SV') : '');
 
-const loadMarcaciones = async () => {
-  loadingMarc.value = true;
-  try {
-    marcaciones.value = (await api.get('/marcaciones/pendientes')).data;
-  } finally {
-    loadingMarc.value = false;
-  }
-};
-
-onMounted(async () => {
-  await loadMarcaciones();
+watch(tab, (t) => {
+  if (t === 'marcaciones') reloadMarcaciones();
+  else if (t === 'asistencia') reloadAsistencia();
 });
+
+onMounted(reloadMarcaciones);
 
 const openMarcModal = () => {
   marcForm.value = defaultMarcForm();
@@ -171,15 +208,6 @@ const openMarcModal = () => {
 const closeMarcModal = () => {
   showMarc.value = false;
   marcForm.value = defaultMarcForm();
-};
-
-const loadAsistencia = async () => {
-  loadingAsist.value = true;
-  try {
-    asistencias.value = (await api.get('/asistencia', { params: filtro.value })).data;
-  } finally {
-    loadingAsist.value = false;
-  }
 };
 
 const saveMarc = async () => {
@@ -193,12 +221,12 @@ const saveMarc = async () => {
   }
   await api.post('/marcaciones', marcForm.value);
   closeMarcModal();
-  await loadMarcaciones();
+  await reloadMarcaciones();
 };
 
 const procesarAsistencia = async () => {
   const r = await api.post('/asistencia/procesar', procesar.value);
   msg.value = r.data.message;
-  await loadMarcaciones();
+  await reloadMarcaciones();
 };
 </script>

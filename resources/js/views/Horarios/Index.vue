@@ -25,7 +25,7 @@
           </span>
         </div>
         <div class="table-shell">
-          <table class="table-base text-xs">
+          <table v-table-cards class="table-cards table-base text-xs">
             <thead>
               <tr class="table-head-row">
                 <th class="table-head-cell">Día</th>
@@ -47,10 +47,20 @@
           </table>
         </div>
       </div>
+      <PaginationBar
+        v-if="!loading && horarios.length"
+        :page="page"
+        :last-page="lastPage"
+        :per-page="perPage"
+        :total="total"
+        :loading="loading"
+        @update:page="setPage"
+        @update:per-page="setPerPage"
+      />
       </template>
 
-      <div v-if="showModal" class="modal-overlay">
-        <form v-submit-lock="save" class="modal-panel w-full max-w-2xl modal-body">
+      <AppModalShell :open="showModal" @close="closeModal">
+        <form v-submit-lock="save" class="modal-panel w-full max-w-2xl mx-auto modal-body">
           <h3 class="modal-title">Nuevo Horario</h3>
           <AsyncSelect
             v-model="form.ID_EMPRESA"
@@ -74,7 +84,7 @@
             <button type="submit" class="btn-primary">Guardar</button>
           </div>
         </form>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
@@ -83,13 +93,27 @@
 import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { field, fieldStr } from '../../utils/fields';
 
 const dias = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom' };
-const horarios = ref([]);
+
+const {
+  items: horarios,
+  loading,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: load,
+  setPage,
+  setPerPage,
+} = usePaginatedList('/horarios', { perPage: 10 });
+
 const showModal = ref(false);
-const loading = ref(false);
 
 const defaultDetalle = () => [1, 2, 3, 4, 5, 6, 7].map((d) => ({
   DIA_SEMANA: d,
@@ -106,15 +130,6 @@ const defaultForm = () => ({
 });
 
 const form = ref(defaultForm());
-
-const load = async () => {
-  loading.value = true;
-  try {
-    horarios.value = (await api.get('/horarios')).data;
-  } finally {
-    loading.value = false;
-  }
-};
 
 onMounted(load);
 

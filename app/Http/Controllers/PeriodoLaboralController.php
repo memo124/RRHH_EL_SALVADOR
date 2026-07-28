@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PeriodoLaboralController extends Controller
 {
-    public function index()
+    use PaginatesQueries;
+
+    public function index(Request $request)
     {
-        return response()->json(
-            DB::table('PERIODO_LABORAL')->orderBy('FECHAINICIO', 'desc')->get()
-        );
+        $query = DB::table('PERIODO_LABORAL')->orderBy('FECHAINICIO', 'desc');
+
+        return $this->paginateQuery($query, $request, ['CALPERIODO']);
     }
 
     public function store(Request $request)

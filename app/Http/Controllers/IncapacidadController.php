@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\Empleado;
 use App\Services\IncapacityManagementService;
 use Carbon\Carbon;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class IncapacidadController extends Controller
 {
+    use PaginatesQueries;
+
     protected $incapacityService;
 
     public function __construct(IncapacityManagementService $incapacityService)
@@ -49,7 +52,7 @@ class IncapacidadController extends Controller
                 ->where('INCAPACIDAD.FECHA_FIN', '>=', now()->toDateString());
         }
 
-        return response()->json($query->get());
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO', 'NUMERO_CERTIFICADO_ISSS', 'NOMBRE_TIPO']);
     }
 
     public function store(Request $request)
@@ -134,14 +137,25 @@ class IncapacidadController extends Controller
             $query->where('SUBSIDIO_ISSS.ESTADO_SUBSIDIO', $request->estado);
         }
 
-        $items = $query->get();
+        $totalesRow = (clone $query)->selectRaw("
+            COALESCE(SUM(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'PENDIENTE' THEN \"SUBSIDIO_ISSS\".\"MONTO_SUBSIDIO_CALCULADO_ISSS\" ELSE 0 END), 0) AS pendiente,
+            COALESCE(SUM(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'COBRADO' THEN \"SUBSIDIO_ISSS\".\"MONTO_SUBSIDIO_CALCULADO_ISSS\" ELSE 0 END), 0) AS cobrado,
+            COUNT(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'PENDIENTE' THEN 1 END) AS count_pendiente
+        ")->first();
+
+        $this->applySearch($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO', 'NUMERO_CERTIFICADO_ISSS']);
+        $paginated = $query->paginate($this->perPage($request));
 
         return response()->json([
-            'items' => $items,
+            'data' => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
             'totales' => [
-                'pendiente' => $items->where('ESTADO_SUBSIDIO', 'PENDIENTE')->sum('MONTO_SUBSIDIO_CALCULADO_ISSS'),
-                'cobrado' => $items->where('ESTADO_SUBSIDIO', 'COBRADO')->sum('MONTO_SUBSIDIO_CALCULADO_ISSS'),
-                'count_pendiente' => $items->where('ESTADO_SUBSIDIO', 'PENDIENTE')->count(),
+                'pendiente' => (float) ($totalesRow->pendiente ?? 0),
+                'cobrado' => (float) ($totalesRow->cobrado ?? 0),
+                'count_pendiente' => (int) ($totalesRow->count_pendiente ?? 0),
             ],
         ]);
     }

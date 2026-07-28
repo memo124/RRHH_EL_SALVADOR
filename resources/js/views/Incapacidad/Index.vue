@@ -2,21 +2,22 @@
   <DashboardLayout>
     <div class="space-y-6">
       <!-- Header -->
-      <div class="flex flex-wrap justify-between items-start gap-4">
+      <div class="page-header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Incapacidades y Cobros ISSS</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
+          <h1 class="page-title">Incapacidades y Cobros ISSS</h1>
+          <p class="page-subtitle mt-1 max-w-2xl">
             Registre aquí el <strong>certificado médico</strong> del empleado. El sistema calcula los días pagados por la empresa
             y genera automáticamente el <strong>cobro al ISSS</strong> cuando corresponde (del día 4 en adelante en enfermedad común).
           </p>
         </div>
+        <div v-if="vista === 'incap'" class="page-header-actions">
         <button
-          v-if="vista === 'incap'"
           @click="openModal"
-          class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shrink-0"
+          class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shrink-0 w-full sm:w-auto"
         >
           + Registrar certificado
         </button>
+        </div>
       </div>
 
       <!-- Flujo explicativo -->
@@ -45,7 +46,7 @@
           class="py-3 px-6 border-b-2 text-sm transition-all"
         >
           Certificados médicos
-          <span class="ml-1.5 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs">{{ items.length }}</span>
+          <span class="ml-1.5 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs">{{ total }}</span>
         </button>
         <button
           @click="switchToSubsidios"
@@ -64,14 +65,14 @@
       <!-- Tab: Certificados -->
       <div v-if="vista === 'incap'" class="space-y-4">
         <label class="flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" v-model="soloActivas" @change="load" />
+          <input type="checkbox" v-model="soloActivas" @change="reload" />
           Mostrar solo incapacidades vigentes
         </label>
 
         <SkeletonTable v-if="loading" :cols="8" :no-header="true" />
 
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden shadow-sm">
-          <table class="w-full text-sm text-left">
+        <div v-else class="table-shell table-scroll dark:border-slate-700">
+          <table v-table-cards class="table-cards w-full text-sm text-left">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-xs font-semibold uppercase text-slate-600">
                 <th class="px-4 py-3">Empleado</th>
@@ -117,13 +118,11 @@
                   </span>
                 </td>
                 <td class="px-4 py-3 text-right">
-                  <button
+                  <IconActionButton
                     v-if="i.ESTADO_INCAPACIDAD !== 'CANCELADA'"
+                    variant="cancel"
                     @click="cancelar(i)"
-                    class="text-rose-600 text-xs font-semibold hover:underline"
-                  >
-                    Cancelar
-                  </button>
+                  />
                 </td>
               </tr>
               <tr v-if="!items.length">
@@ -133,6 +132,15 @@
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :last-page="lastPage"
+            :per-page="perPage"
+            :total="total"
+            :loading="loading"
+            @update:page="setPage"
+            @update:per-page="setPerPage"
+          />
         </div>
       </div>
 
@@ -160,7 +168,7 @@
           <button
             v-for="f in ['', 'PENDIENTE', 'COBRADO']"
             :key="f || 'all'"
-            @click="filtroSub = f; loadSub()"
+            @click="filtroSub = f; resetSub(); loadSub()"
             :class="filtroSub === f ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border text-slate-600'"
             class="px-3 py-1.5 rounded-lg text-xs font-semibold"
           >
@@ -170,8 +178,8 @@
 
         <SkeletonTable v-if="loadingSub" :cols="6" :no-header="true" />
 
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border overflow-hidden shadow-sm">
-          <table class="w-full text-sm text-left">
+        <div v-else class="table-shell table-scroll dark:border-slate-700">
+          <table v-table-cards class="table-cards w-full text-sm text-left">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-xs font-semibold uppercase text-slate-600">
                 <th class="px-4 py-3">Empleado</th>
@@ -222,12 +230,21 @@
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="subPage"
+            :last-page="subLastPage"
+            :per-page="subPerPage"
+            :total="subTotal"
+            :loading="loadingSub"
+            @update:page="setSubPage"
+            @update:per-page="setSubPerPage"
+          />
         </div>
       </div>
 
       <!-- Modal: Registrar certificado -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full border overflow-hidden">
+      <AppModalShell :open="showModal" @close="showModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full mx-auto border overflow-hidden">
           <div class="px-6 py-4 border-b bg-slate-50 dark:bg-slate-700/50">
             <h3 class="font-bold text-slate-900 dark:text-white">Registrar certificado de incapacidad</h3>
             <p class="text-xs text-slate-500 mt-1">Datos del certificado médico ISSS del empleado.</p>
@@ -274,11 +291,11 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
 
       <!-- Modal: Registrar cobro ISSS -->
-      <div v-if="showCobroModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+      <AppModalShell :open="showCobroModal" @close="showCobroModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto border overflow-hidden">
           <div class="px-6 py-4 border-b bg-emerald-50 dark:bg-emerald-900/20">
             <h3 class="font-bold text-emerald-900 dark:text-emerald-200">Registrar cobro del ISSS</h3>
             <p class="text-xs text-slate-500 mt-1">Confirme que la empresa recibió el reembolso.</p>
@@ -303,31 +320,49 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog, dialogEmpleadoLabel } from '../../composables/useDialog';
 import { useToast } from '../../composables/useToast';
 
 const toast = useToast();
 
-const items = ref([]);
+const soloActivas = ref(false);
+const incapParams = computed(() => (soloActivas.value ? { activas: 1 } : {}));
+const {
+  items,
+  loading,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: reload,
+  setPage,
+  setPerPage,
+} = usePaginatedList('/incapacidades', { perPage: 25, params: incapParams });
+
 const subsidios = ref([]);
 const subTotales = ref({ pendiente: 0, cobrado: 0, count_pendiente: 0 });
+const subPage = ref(1);
+const subPerPage = ref(25);
+const subTotal = ref(0);
+const subLastPage = ref(1);
 const showModal = ref(false);
 const showCobroModal = ref(false);
 const modalError = ref('');
 const vista = ref('incap');
-const soloActivas = ref(false);
 const filtroSub = ref('');
-const loading = ref(false);
 const loadingSub = ref(false);
 
 const form = ref({
@@ -353,26 +388,39 @@ const subsidioBadge = e => ({
   COBRADO: 'bg-emerald-50 text-emerald-700',
 }[e] || 'bg-slate-100 text-slate-600');
 
-const load = async () => {
-  loading.value = true;
-  try {
-    const params = soloActivas.value ? { activas: 1 } : {};
-    items.value = (await api.get('/incapacidades', { params })).data;
-  } finally {
-    loading.value = false;
-  }
-};
-
 const loadSub = async () => {
   loadingSub.value = true;
   try {
-    const params = filtroSub.value ? { estado: filtroSub.value } : {};
+    const params = {
+      page: subPage.value,
+      per_page: subPerPage.value,
+      ...(filtroSub.value ? { estado: filtroSub.value } : {}),
+    };
     const res = await api.get('/subsidios-isss', { params });
-    subsidios.value = res.data.items || res.data;
-    subTotales.value = res.data.totales || { pendiente: 0, cobrado: 0, count_pendiente: 0 };
+    const payload = res.data;
+    subsidios.value = payload.data ?? payload.items ?? [];
+    subTotales.value = payload.totales ?? { pendiente: 0, cobrado: 0, count_pendiente: 0 };
+    subTotal.value = payload.total ?? subsidios.value.length;
+    subLastPage.value = payload.last_page ?? 1;
+    subPage.value = payload.current_page ?? subPage.value;
   } finally {
     loadingSub.value = false;
   }
+};
+
+const resetSub = () => {
+  subPage.value = 1;
+};
+
+const setSubPage = (p) => {
+  subPage.value = Math.max(1, Math.min(p, subLastPage.value || 1));
+  return loadSub();
+};
+
+const setSubPerPage = (n) => {
+  subPerPage.value = n;
+  subPage.value = 1;
+  return loadSub();
 };
 
 const switchToSubsidios = () => {
@@ -396,7 +444,7 @@ const save = async () => {
   try {
     await api.post('/incapacidades', form.value);
     showModal.value = false;
-    await load();
+    await reload();
     if (vista.value === 'sub') await loadSub();
   } catch {
     modalError.value = 'Error al registrar el certificado.';
@@ -426,7 +474,7 @@ const cancelar = async (i) => {
   try {
     await api.post(`/incapacidades/${i.ID_INCAPACIDAD}/cancelar`, { motivo: values.motivo });
     toast.success('Incapacidad cancelada');
-    load();
+    reload();
   } catch {
     toast.error('Error', 'No se pudo cancelar la incapacidad.');
   }
@@ -452,8 +500,8 @@ const confirmarCobro = async () => {
   });
   showCobroModal.value = false;
   loadSub();
-  load();
+  reload();
 };
 
-onMounted(load);
+onMounted(reload);
 </script>

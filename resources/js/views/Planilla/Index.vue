@@ -1,23 +1,25 @@
 <template>
   <DashboardLayout>
     <div class="space-y-6">
-      <div class="flex justify-between items-center">
+      <div class="page-header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Cálculo de Planilla</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Procesamiento de planillas mensuales y extraordinarias.</p>
+          <h1 class="page-title">Cálculo de Planilla</h1>
+          <p class="page-subtitle">Procesamiento de planillas mensuales y extraordinarias.</p>
         </div>
+        <div class="page-header-actions">
         <button @click="openCreateModal"
-          class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm">
+          class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm w-full sm:w-auto">
           + Nueva Planilla
         </button>
+        </div>
       </div>
 
       <SkeletonTable v-if="initialLoading" />
 
       <!-- Planillas List -->
-      <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+      <div v-else class="table-shell table-scroll">
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200 dark:border-slate-700">
                 <th class="px-6 py-4">ID</th>
@@ -47,8 +49,10 @@
                     {{ calculating && selectedPayroll?.ID_PLANILLA === plan.ID_PLANILLA ? '...' : 'Calcular' }}
                   </button>
                   <button @click="viewDetails(plan)"
-                    class="px-2.5 py-1 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 rounded text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors">
-                    Ver Detalles
+                    class="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 rounded text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+                    title="Ver detalles">
+                    <AppIcon name="eye" size="xs" />
+                    <span class="hidden sm:inline">Ver Detalles</span>
                   </button>
                   <button v-if="plan.RECALCULADA && !plan.CERRADA && !plan.ANULADA" @click="cerrarPlanilla(plan)" class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-semibold">Cerrar</button>
                   <button v-if="plan.CERRADA && !plan.CONTABILIZADA && !plan.ANULADA" @click="contabilizarPlanilla(plan)" class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">Contabilizar</button>
@@ -61,6 +65,15 @@
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="initialLoading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
       <!-- Details Panel -->
@@ -74,15 +87,15 @@
           </div>
         </div>
         <!-- Detail Header -->
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-700/40">
-          <div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Detalle de Planilla: {{ selectedPayroll.TITULO }}</h3>
+        <div class="detail-panel-header">
+          <div class="min-w-0">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white truncate">Detalle de Planilla: {{ selectedPayroll.TITULO }}</h3>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {{ selectedPayroll.CALPERIODO }} · {{ selectedPayroll.TIPOPLANILLA }}
               <span class="ml-2 text-indigo-600 dark:text-indigo-400 font-semibold">{{ payrollTotales.COUNT }} empleados</span>
             </p>
           </div>
-          <div class="flex items-center space-x-3">
+          <div class="detail-actions">
             <template v-if="hasDetalles">
               <button data-no-lock @click="imprimirPlanilla" :disabled="isBusy()" class="text-xs bg-slate-800 hover:bg-slate-900 text-white rounded px-3 py-1.5 font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
                 <span v-if="isLoading('print-planilla')" class="btn-spinner !h-3 !w-3"></span>
@@ -108,8 +121,9 @@
             </template>
             <button v-if="selectedPayroll && !selectedPayroll.CERRADA && !selectedPayroll.ANULADA" @click="toggleHePanel" class="text-xs border border-slate-300 dark:border-slate-600 rounded px-3 py-1.5 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">Horas Extras</button>
             <button v-if="loadingDetails" class="text-xs text-slate-400 animate-pulse">Cargando...</button>
-            <button @click="closeDetails" class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 font-semibold border border-slate-200 dark:border-slate-600 rounded px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-              ✕ Cerrar Detalles
+            <button @click="closeDetails" class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 font-semibold border border-slate-200 dark:border-slate-600 rounded px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors inline-flex items-center gap-1.5">
+              <AppIcon name="x" size="xs" />
+              Cerrar Detalles
             </button>
           </div>
         </div>
@@ -142,13 +156,23 @@
           <div v-if="!loadingHe && horasExtras.length" class="text-xs space-y-1">
             <div v-for="he in horasExtras" :key="he.ID_DETALLEHORAEXTRA" class="flex justify-between bg-white dark:bg-slate-800 rounded px-3 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200">
               <span>{{ heNombre(he) }} — {{ heTipo(he) }} ({{ he.CANTIDADHORAS ?? he.cantidadhoras }} hrs)</span>
-              <span class="font-mono">${{ fmt(he.MONTOAPAGAR) }} <button @click="deleteHe(he)" class="text-rose-600 dark:text-rose-400 ml-2">✕</button></span>
+              <span class="font-mono">${{ fmt(he.MONTOAPAGAR) }} <button @click="deleteHe(he)" class="text-rose-600 dark:text-rose-400 ml-2 inline-flex" aria-label="Eliminar"><AppIcon name="trash" size="xs" /></button></span>
             </div>
           </div>
           <p v-else-if="!loadingHe && !hasDetalles" class="text-xs text-amber-700 dark:text-amber-300">
             Calcule la planilla primero para cargar los empleados de esta corrida.
           </p>
           <p v-else-if="!loadingHe" class="text-xs text-slate-500 dark:text-slate-400">No hay horas extras registradas. Agregue manualmente o sincronice desde asistencia.</p>
+          <PaginationBar
+            v-if="horasExtras.length"
+            :page="hePage"
+            :last-page="heLastPage"
+            :per-page="hePerPage"
+            :total="heTotal"
+            :loading="loadingHe"
+            @update:page="setHePage"
+            @update:per-page="setHePerPage"
+          />
         </div>
 
         <!-- Loading state -->
@@ -158,7 +182,7 @@
 
         <!-- Empty state -->
         <div v-else-if="!hasDetalles" class="p-10 text-center">
-          <div class="text-4xl mb-3">📋</div>
+          <AppIcon name="clipboard-list" size="xl" class="mx-auto mb-3 text-slate-400" />
           <p class="text-slate-600 dark:text-slate-400 font-semibold">Sin detalles calculados</p>
           <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Haz clic en "Calcular" para procesar los empleados de esta planilla.</p>
         </div>
@@ -175,7 +199,7 @@
             <span class="text-xs text-slate-500">{{ detalleTotal }} empleados en planilla</span>
           </div>
           <div ref="detalleScrollRef" class="overflow-x-auto max-h-[520px] overflow-y-auto">
-          <table class="w-full text-left border-collapse text-xs">
+          <table v-table-cards class="table-cards w-full text-left border-collapse text-xs">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 font-semibold uppercase border-b border-slate-200 dark:border-slate-700">
                 <th class="px-4 py-3 sticky left-0 bg-slate-50 dark:bg-slate-700/50 z-10">#</th>
@@ -210,7 +234,7 @@
                 <td class="px-4 py-3 text-right font-bold text-emerald-600 dark:text-emerald-400">${{ fmt(payrollDetails[virtualRow.index].LIQUIDO_A_RECIBIR) }}</td>
                 <td v-for="pat in patronalVisible" :key="pat.key" class="px-4 py-3 text-right text-violet-600 dark:text-violet-400 font-medium">${{ fmt(getPatronalMonto(payrollDetails[virtualRow.index], pat)) }}</td>
                 <td class="px-4 py-3 text-center space-x-1 whitespace-nowrap">
-                  <button data-no-lock @click="imprimirBoleta(payrollDetails[virtualRow.index])" :disabled="isBusy()" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 text-xs font-semibold disabled:opacity-40" title="Imprimir boleta">🖨</button>
+                  <button data-no-lock @click="imprimirBoleta(payrollDetails[virtualRow.index])" :disabled="isBusy()" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 text-xs font-semibold disabled:opacity-40 inline-flex" title="Imprimir boleta" aria-label="Imprimir boleta"><AppIcon name="printer" size="xs" /></button>
                   <button data-no-lock @click="descargarPdfBoleta(payrollDetails[virtualRow.index])" :disabled="isBusy()" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold disabled:opacity-40" title="PDF">PDF</button>
                 </td>
               </tr>
@@ -264,11 +288,11 @@
       />
 
       <!-- Create Modal -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showModal" @close="showModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">Nueva Corrida de Planilla</h3>
-            <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveForm" class="p-6 space-y-4">
             <div>
@@ -311,7 +335,7 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
@@ -321,9 +345,11 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
 import PlanillaBankExportModal from '../../components/PlanillaBankExportModal.vue';
 import PaginationBar from '../../components/PaginationBar.vue';
 import AsyncSelect from '../../components/AsyncSelect.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import { FORMA_PAGO_OPTIONS } from '../../utils/staticSelectOptions';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
@@ -355,18 +381,48 @@ const {
 } = usePlanillaReports();
 
 const planillas     = ref([]);
+const selectedPayroll = ref(null);
+
+const {
+  items: planillasItems,
+  loading: initialLoading,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: loadPlanillas,
+  setPage,
+  setPerPage,
+} = usePaginatedList('/planillas', { perPage: 25 });
+
+watch(planillasItems, (v) => { planillas.value = v; }, { immediate: true });
+
+const heEndpoint = computed(() =>
+  selectedPayroll.value?.ID_PLANILLA
+    ? `/planillas/${selectedPayroll.value.ID_PLANILLA}/horas-extras`
+    : '/planillas/0/horas-extras'
+);
+
+const {
+  items: horasExtras,
+  loading: loadingHe,
+  page: hePage,
+  perPage: hePerPage,
+  total: heTotal,
+  lastPage: heLastPage,
+  fetch: fetchHorasExtras,
+  setPage: setHePage,
+  setPerPage: setHePerPage,
+} = usePaginatedList(heEndpoint, { perPage: 25 });
+
 const catalogs      = ref({ empresas: [], tiposPlanilla: [], periodos: [], frecuencias: [], cuentas: [] });
-const horasExtras   = ref([]);
 const showHePanel   = ref(false);
 const heForm        = ref({ ID_EMPLEADO: null, ID_HORASEXTRAS: null, CANTIDADHORAS: null });
-const initialLoading = ref(true);
 const loadingDetails= ref(false);
-const loadingHe     = ref(false);
 const calculating   = ref(false);
 const showModal     = ref(false);
 const showBankExport = ref(false);
 const modalError    = ref('');
-const selectedPayroll = ref(null);
 const payrollDetails  = ref([]);
 const payrollTotales  = ref({ COUNT: 0, TOTAL_DEVENGADO: 0, AFP_EMPLEADO: 0, ISSS_EMPLEADO: 0, RENTA_EMPLEADO: 0, PRESTAMOS: 0, OTRO_DESCUENTOS: 0, TOTAL_DEDUCCIONES: 0, LIQUIDO_A_RECIBIR: 0, AFP_PATRONAL: 0, ISSS_PATRONAL: 0, INSAFORP_PATRONAL: 0 });
 const totalesConceptos = ref({ ingreso: {}, descuento: [], patronal: {} });
@@ -446,12 +502,12 @@ const formatDate = (d) => {
   try { return new Date(d).toLocaleDateString('es-SV'); } catch { return d; }
 };
 
-const loadPlanillas = async () => {
-  try {
-    const res = await api.get('/planillas');
-    planillas.value = res.data;
-  } catch (err) { console.error(err); }
-  finally { initialLoading.value = false; }
+const loadHorasExtras = async () => {
+  if (!selectedPayroll.value?.ID_PLANILLA) {
+    horasExtras.value = [];
+    return;
+  }
+  await fetchHorasExtras();
 };
 
 const loadCatalogs = async () => {
@@ -566,21 +622,10 @@ const calculatePayroll = async (plan) => {
   }
 };
 
-const loadHorasExtras = async (id) => {
-  loadingHe.value = true;
-  try {
-    horasExtras.value = (await api.get(`/planillas/${id}/horas-extras`)).data;
-  } catch (err) {
-    console.error('Error cargando horas extras:', err);
-    horasExtras.value = [];
-  } finally {
-    loadingHe.value = false;
-  }
-};
 const addHe = async () => {
   try {
     await api.post(`/planillas/${selectedPayroll.value.ID_PLANILLA}/horas-extras`, heForm.value);
-    await loadHorasExtras(selectedPayroll.value.ID_PLANILLA);
+    await loadHorasExtras();
     heForm.value.CANTIDADHORAS = null;
   } catch (err) {
     await dialog.alert({ title: 'Error', message: 'No se pudo agregar la hora extra.', variant: 'danger' });
@@ -589,12 +634,12 @@ const addHe = async () => {
 };
 const deleteHe = async (he) => {
   await api.delete(`/planillas/${selectedPayroll.value.ID_PLANILLA}/horas-extras/${he.ID_DETALLEHORAEXTRA}`);
-  await loadHorasExtras(selectedPayroll.value.ID_PLANILLA);
+  await loadHorasExtras();
 };
 const syncHe = async () => {
   try {
     await api.post(`/planillas/${selectedPayroll.value.ID_PLANILLA}/horas-extras/sync`);
-    await loadHorasExtras(selectedPayroll.value.ID_PLANILLA);
+    await loadHorasExtras();
     await dialog.alert({
       title: 'Sincronización completada',
       message: 'Horas extras sincronizadas desde asistencia.',
@@ -639,7 +684,7 @@ const viewDetails = async (plan) => {
   try {
     const [detailRes] = await Promise.all([
       api.get(`/planillas/${plan.ID_PLANILLA}`),
-      loadHorasExtras(plan.ID_PLANILLA),
+      loadHorasExtras(),
     ]);
     selectedPayroll.value = detailRes.data.planilla;
     payrollTotales.value  = detailRes.data.totales   || payrollTotales.value;

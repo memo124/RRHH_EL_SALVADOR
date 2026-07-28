@@ -1,9 +1,11 @@
 <template>
   <DashboardLayout>
     <div class="space-y-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Catálogos RRHH</h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400">Catálogos base del sistema de recursos humanos.</p>
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Catálogos RRHH</h1>
+          <p class="page-subtitle">Catálogos base del sistema de recursos humanos.</p>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -16,8 +18,8 @@
       </div>
 
       <!-- Actions bar -->
-      <div class="flex justify-between items-center">
-        <input v-model="search" type="text" :placeholder="`Buscar ${currentTab?.label?.toLowerCase()}...`"
+      <div class="page-toolbar">
+          <input v-model="searchQuery" type="text" :placeholder="`Buscar ${currentTab?.label?.toLowerCase()}...`"
           class="w-full max-w-xs px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none" />
         <button @click="openCreate" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors">
           + {{ currentTab?.addLabel }}
@@ -27,8 +29,8 @@
       <SkeletonTable v-if="loading" />
 
       <!-- Generic table -->
-      <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-        <table class="w-full text-left border-collapse">
+      <div v-else class="table-shell table-scroll">
+        <table v-table-cards class="table-cards w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th v-for="col in currentTab?.columns" :key="col.key" class="px-6 py-4">{{ col.label }}</th>
@@ -36,7 +38,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-            <tr v-for="r in filtered" :key="r[currentTab?.idKey]" class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+            <tr v-for="r in records" :key="r[currentTab?.idKey]" class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
               <td v-for="col in currentTab?.columns" :key="col.key" class="px-6 py-4">
                 <template v-if="col.type === 'id'">
                   <span class="text-slate-500">{{ r[col.key] }}</span>
@@ -57,25 +59,32 @@
                 </template>
               </td>
               <td class="px-6 py-4 text-right space-x-2">
-                <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                <button @click="deleteOrInactivate(r)" class="text-rose-600 font-semibold text-xs hover:underline">
-                  {{ currentTab?.deletable ? 'Eliminar' : 'Inactivar' }}
-                </button>
+                <IconActionButton variant="edit" @click="openEdit(r)" />
+                <IconActionButton :variant="currentTab?.deletable ? 'delete' : 'inactivate'" @click="deleteOrInactivate(r)" />
               </td>
             </tr>
-            <tr v-if="!filtered.length">
+            <tr v-if="!records.length">
               <td :colspan="(currentTab?.columns?.length || 2) + 1" class="px-6 py-8 text-center text-slate-400 text-sm">Sin registros</td>
             </tr>
           </tbody>
         </table>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
       <!-- ══ DYNAMIC MODAL ════════════════════════════════════════════════════ -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showModal" @close="showModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">{{ isEditing ? 'Editar' : 'Nuevo' }} {{ currentTab?.label }}</h3>
-            <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="save" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
 
@@ -193,7 +202,7 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
@@ -202,6 +211,9 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { MODALIDAD_HE_OPTIONS, JORNADA_HE_OPTIONS } from '../../utils/staticSelectOptions';
@@ -265,31 +277,31 @@ const tabs = [
 
 const activeTab   = ref('afp');
 const currentTab  = computed(() => tabs.find(t => t.key === activeTab.value));
-const loading     = ref(false);
-const search      = ref('');
+const endpoint    = computed(() => `/${currentTab.value?.api}`);
+
+const {
+  items: records,
+  loading,
+  search: searchQuery,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: loadTab,
+  setPage,
+  setSearch,
+  setPerPage,
+  reset,
+} = usePaginatedList(endpoint, { perPage: 25 });
+
 const showModal   = ref(false);
 const isEditing   = ref(false);
 const modalError  = ref('');
 const form        = ref({});
-const records     = ref([]);
 
-const filtered = computed(() => {
-  const key = currentTab.value?.search;
-  if (!search.value || !key) return records.value;
-  return records.value.filter(r => (r[key] || '').toLowerCase().includes(search.value.toLowerCase()));
-});
-
-const loadTab = async () => {
-  loading.value = true;
-  try {
-    const res = await api.get(`/${currentTab.value.api}`);
-    records.value = res.data;
-  } catch (err) { console.error(err); }
-  finally { loading.value = false; }
-};
-
+watch(searchQuery, (q) => setSearch(q));
+watch(activeTab, () => { reset(); loadTab(); });
 onMounted(loadTab);
-watch(activeTab, () => { search.value = ''; loadTab(); });
 
 const defaultForms = {
   afp:           { NOMBREAFP: '', CODIGOPREVISIONAL: '', PORCENTAJEPATRONAL: 0, PORCENTAJEEMPLEADOR: 0, DEVENGADOMAXIMO: null, DEVENGADOMINIMO: null, ESACTIVO: true },

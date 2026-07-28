@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CorporativoController extends Controller
 {
+    use PaginatesQueries;
+
     // ─── EMPRESAS ─────────────────────────────────────────────────────────────
 
-    public function indexEmpresas()
+    public function indexEmpresas(Request $request)
     {
-        return response()->json(DB::table('EMPRESA')->orderBy('ID_EMPRESA')->get());
+        $query = DB::table('EMPRESA')->orderBy('ID_EMPRESA');
+
+        return $this->paginateQuery($query, $request, ['NOMBREEMPRESA', 'NUMERONIT', 'ABREVIATURA']);
     }
 
     public function storeEmpresa(Request $request)
@@ -110,9 +115,14 @@ class CorporativoController extends Controller
 
     // ─── AREAS ────────────────────────────────────────────────────────────────
 
-    public function indexAreas()
+    public function indexAreas(Request $request)
     {
-        return response()->json(DB::table('AREA')->orderBy('ID_AREA')->get());
+        $query = DB::table('AREA')
+            ->leftJoin('EMPRESA', 'AREA.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
+            ->select('AREA.*', 'EMPRESA.NOMBREEMPRESA')
+            ->orderBy('AREA.ID_AREA');
+
+        return $this->paginateQuery($query, $request, ['NOMBREAREA', 'NOMBREEMPRESA']);
     }
 
     public function storeArea(Request $request)
@@ -165,9 +175,14 @@ class CorporativoController extends Controller
 
     // ─── CENTRO DE COSTO ──────────────────────────────────────────────────────
 
-    public function indexCentrosCosto()
+    public function indexCentrosCosto(Request $request)
     {
-        return response()->json(DB::table('CENTRO_COSTO')->orderBy('ID_CENTROCOSTO')->get());
+        $query = DB::table('CENTRO_COSTO')
+            ->leftJoin('EMPRESA', 'CENTRO_COSTO.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
+            ->select('CENTRO_COSTO.*', 'EMPRESA.NOMBREEMPRESA')
+            ->orderBy('CENTRO_COSTO.ID_CENTROCOSTO');
+
+        return $this->paginateQuery($query, $request, ['NOMBRE_CENTROCOSTO', 'CODIGO_CENTROCOSTO', 'NOMBREEMPRESA']);
     }
 
     public function storeCentroCosto(Request $request)
@@ -224,9 +239,15 @@ class CorporativoController extends Controller
 
     // ─── DEPARTAMENTOS ────────────────────────────────────────────────────────
 
-    public function indexDepartamentos()
+    public function indexDepartamentos(Request $request)
     {
-        return response()->json(DB::table('DEPARTAMENTO')->orderBy('ID_DEPARTAMENTO')->get());
+        $query = DB::table('DEPARTAMENTO')
+            ->leftJoin('EMPRESA', 'DEPARTAMENTO.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
+            ->leftJoin('AREA', 'DEPARTAMENTO.ID_AREA', '=', 'AREA.ID_AREA')
+            ->select('DEPARTAMENTO.*', 'EMPRESA.NOMBREEMPRESA', 'AREA.NOMBREAREA')
+            ->orderBy('DEPARTAMENTO.ID_DEPARTAMENTO');
+
+        return $this->paginateQuery($query, $request, ['NOMBREDEPARTAMENTO', 'NOMBREEMPRESA', 'NOMBREAREA']);
     }
 
     public function storeDepartamento(Request $request)
@@ -291,9 +312,15 @@ class CorporativoController extends Controller
 
     // ─── CARGOS ───────────────────────────────────────────────────────────────
 
-    public function indexCargos()
+    public function indexCargos(Request $request)
     {
-        return response()->json(DB::table('CARGO')->orderBy('ID_CARGO')->get());
+        $query = DB::table('CARGO')
+            ->leftJoin('DEPARTAMENTO', 'CARGO.ID_DEPARTAMENTO', '=', 'DEPARTAMENTO.ID_DEPARTAMENTO')
+            ->leftJoin('CENTRO_COSTO', 'CARGO.ID_CENTROCOSTO', '=', 'CENTRO_COSTO.ID_CENTROCOSTO')
+            ->select('CARGO.*', 'DEPARTAMENTO.NOMBREDEPARTAMENTO', 'CENTRO_COSTO.NOMBRE_CENTROCOSTO')
+            ->orderBy('CARGO.ID_CARGO');
+
+        return $this->paginateQuery($query, $request, ['NOMBRECARGO', 'NOMBREDEPARTAMENTO', 'NOMBRE_CENTROCOSTO']);
     }
 
     public function storeCargo(Request $request)
@@ -354,9 +381,14 @@ class CorporativoController extends Controller
 
     // ─── SUCURSALES ───────────────────────────────────────────────────────────
 
-    public function indexSucursales()
+    public function indexSucursales(Request $request)
     {
-        return response()->json(DB::table('SUCURSAL')->orderBy('ID_SUCURSAL')->get());
+        $query = DB::table('SUCURSAL')
+            ->leftJoin('EMPRESA', 'SUCURSAL.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
+            ->select('SUCURSAL.*', 'EMPRESA.NOMBREEMPRESA')
+            ->orderBy('SUCURSAL.ID_SUCURSAL');
+
+        return $this->paginateQuery($query, $request, ['NOMBRESUCURSAL', 'NOMBREEMPRESA', 'DIRECCION']);
     }
 
     public function storeSucursal(Request $request)
@@ -409,9 +441,14 @@ class CorporativoController extends Controller
 
     // ─── BODEGAS ──────────────────────────────────────────────────────────────
 
-    public function indexBodegas()
+    public function indexBodegas(Request $request)
     {
-        return response()->json(DB::table('BODEGA')->orderBy('ID_BODEGA')->get());
+        $query = DB::table('BODEGA')
+            ->leftJoin('EMPRESA', 'BODEGA.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
+            ->select('BODEGA.*', 'EMPRESA.NOMBREEMPRESA')
+            ->orderBy('BODEGA.ID_BODEGA');
+
+        return $this->paginateQuery($query, $request, ['NOMBREBODEGA', 'NOMBREEMPRESA']);
     }
 
     public function storeBodega(Request $request)
@@ -456,9 +493,15 @@ class CorporativoController extends Controller
 
     // ─── RUTAS ────────────────────────────────────────────────────────────────
 
-    public function indexRutas()
+    public function indexRutas(Request $request)
     {
-        return response()->json(DB::table('RUTA')->orderBy('ID_RUTA')->get());
+        $query = DB::table('RUTA')
+            ->leftJoin('EMPRESA', 'RUTA.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
+            ->leftJoin('CENTRO_COSTO', 'RUTA.ID_CENTROCOSTO', '=', 'CENTRO_COSTO.ID_CENTROCOSTO')
+            ->select('RUTA.*', 'EMPRESA.NOMBREEMPRESA', 'CENTRO_COSTO.NOMBRE_CENTROCOSTO')
+            ->orderBy('RUTA.ID_RUTA');
+
+        return $this->paginateQuery($query, $request, ['NOMBRERUTA', 'NOMBREEMPRESA', 'NOMBRE_CENTROCOSTO']);
     }
 
     public function storeRuta(Request $request)

@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CatalogosMhController extends Controller
 {
-    public function index()
+    use PaginatesQueries;
+
+    public function index(Request $request)
     {
-        $documentos = DB::table('TIPO_DOCUMENTO_IDENTIDAD')->orderBy('ID_TIPODOCUMENTO')->get();
-        return response()->json($documentos);
+        $query = DB::table('TIPO_DOCUMENTO_IDENTIDAD')->orderBy('ID_TIPODOCUMENTO');
+
+        return $this->paginateQuery($query, $request, ['NOMBREDOCUMENTO', 'CODIGO_MH', 'MASCARA_FORMATO']);
     }
 
     public function store(Request $request)

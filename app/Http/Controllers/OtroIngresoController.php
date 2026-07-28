@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OtroIngresoController extends Controller
 {
+    use PaginatesQueries;
+
     public function index(Request $request)
     {
         $query = DB::table('OTRO_INGRESO')
@@ -28,7 +31,7 @@ class OtroIngresoController extends Controller
             $query->where('OTRO_INGRESO.ESACTIVO', true);
         }
 
-        return response()->json($query->get());
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO', 'TIPOINGRESO']);
     }
 
     public function store(Request $request)

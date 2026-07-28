@@ -1,10 +1,10 @@
 <template>
   <DashboardLayout>
     <div class="space-y-6">
-      <div class="flex justify-between items-center">
+      <div class="page-header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Mantenimiento de Seguridad</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Administre los accesos, usuarios, roles y permisos.</p>
+          <h1 class="page-title">Mantenimiento de Seguridad</h1>
+          <p class="page-subtitle">Administre los accesos, usuarios, roles y permisos.</p>
         </div>
       </div>
 
@@ -25,8 +25,8 @@
           </button>
         </div>
         <SkeletonTable v-if="loading" />
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
                 <th class="px-6 py-4">ID</th>
@@ -48,12 +48,22 @@
                   <span v-if="u.BLOQUEADO" class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-xs font-semibold">Bloqueado</span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-3">
-                  <button @click="editUsuario(u)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button @click="openPermissionsModal(u)" class="text-slate-600 font-semibold text-xs hover:underline">Excepciones</button>
+                  <IconActionButton variant="edit" @click="editUsuario(u)" />
+                  <IconActionButton variant="permissions" title="Excepciones" @click="openPermissionsModal(u)" />
                 </td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            v-if="activeTab === 'usuarios'"
+            :page="usuariosPage"
+            :last-page="usuariosLastPage"
+            :per-page="usuariosPerPage"
+            :total="usuariosTotal"
+            :loading="loadingUsuarios"
+            @update:page="setUsuariosPage"
+            @update:per-page="setUsuariosPerPage"
+          />
         </div>
       </div>
 
@@ -65,8 +75,8 @@
           </button>
         </div>
         <SkeletonTable v-if="loading" />
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
                 <th class="px-6 py-4">ID</th>
@@ -87,21 +97,31 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-3">
-                  <button @click="editRol(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button @click="openRolPermisosModal(r)" class="text-violet-600 font-semibold text-xs hover:underline">Permisos</button>
-                  <button @click="inactivateRol(r)" v-if="r.ESACTIVO" class="text-rose-600 font-semibold text-xs hover:underline">Inactivar</button>
+                  <IconActionButton variant="edit" @click="editRol(r)" />
+                  <IconActionButton variant="permissions" title="Permisos del rol" @click="openRolPermisosModal(r)" />
+                  <IconActionButton v-if="r.ESACTIVO" variant="inactivate" @click="inactivateRol(r)" />
                 </td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            v-if="activeTab === 'roles'"
+            :page="rolesPage"
+            :last-page="rolesLastPage"
+            :per-page="rolesPerPage"
+            :total="rolesTotal"
+            :loading="loadingRoles"
+            @update:page="setRolesPage"
+            @update:per-page="setRolesPerPage"
+          />
         </div>
       </div>
 
       <!-- ══ TAB: PERMISOS ══════════════════════════════════════════════════════ -->
       <div v-if="activeTab === 'permisos'" class="space-y-4">
         <SkeletonTable v-if="loading" />
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
                 <th class="px-6 py-4">ID</th>
@@ -125,11 +145,11 @@
       </div>
 
       <!-- ══ MODAL: USUARIO CRUD ════════════════════════════════════════════════ -->
-      <div v-if="showUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showUserModal" @close="showUserModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">{{ isEditingUser ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
-            <button @click="showUserModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            <button @click="showUserModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveUser" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <div>
@@ -159,7 +179,7 @@
             <div>
               <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Roles *</label>
               <div class="space-y-2 max-h-[140px] overflow-y-auto border p-2 rounded-lg">
-                <label v-for="r in roles" :key="r.ID_ROL" class="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                <label v-for="r in rolesCatalog" :key="r.ID_ROL" class="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
                   <input type="checkbox" :value="r.ID_ROL" v-model="userForm.ROLES" class="rounded text-indigo-600 focus:ring-indigo-500" />
                   <span>{{ r.NOMBREROL }}</span>
                 </label>
@@ -192,14 +212,14 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
 
       <!-- ══ MODAL: EXCEPCIONES USUARIO ═════════════════════════════════════════ -->
-      <div v-if="showPermissionsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showPermissionsModal" @close="showPermissionsModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">Excepciones de Permisos: {{ selectedUser?.USUARIO }}</h3>
-            <button @click="showPermissionsModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            <button @click="showPermissionsModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="savePermissions" class="p-6 space-y-4">
             <p class="text-xs text-slate-500">Seleccione permisos directos adicionales para este usuario (complementan los del rol).</p>
@@ -218,14 +238,14 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
 
       <!-- ══ MODAL: ROL CRUD ════════════════════════════════════════════════════ -->
-      <div v-if="showRolModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showRolModal" @close="showRolModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">{{ isEditingRol ? 'Editar Rol' : 'Nuevo Rol' }}</h3>
-            <button @click="showRolModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            <button @click="showRolModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveRol" class="p-6 space-y-4">
             <div>
@@ -252,14 +272,14 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
 
       <!-- ══ MODAL: PERMISOS DEL ROL ════════════════════════════════════════════ -->
-      <div v-if="showRolPermisosModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showRolPermisosModal" @close="showRolPermisosModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">Permisos del Rol: {{ selectedRol?.NOMBREROL }}</h3>
-            <button @click="showRolPermisosModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            <button @click="showRolPermisosModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveRolPermisos" class="p-6 space-y-4">
             <div class="flex justify-between items-center">
@@ -285,15 +305,18 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { SI_NO_BOOL_OPTIONS, ACTIVO_BOOL_OPTIONS } from '../../utils/staticSelectOptions';
@@ -305,10 +328,39 @@ const tabs = [
 ];
 
 const activeTab = ref('usuarios');
-const usuarios  = ref([]);
-const roles     = ref([]);
 const permisos  = ref([]);
-const loading   = ref(false);
+const rolesCatalog = ref([]);
+const loadingPermisos = ref(false);
+
+const {
+  items: usuarios,
+  loading: loadingUsuarios,
+  page: usuariosPage,
+  perPage: usuariosPerPage,
+  total: usuariosTotal,
+  lastPage: usuariosLastPage,
+  fetch: loadUsuarios,
+  setPage: setUsuariosPage,
+  setPerPage: setUsuariosPerPage,
+} = usePaginatedList('/usuarios', { perPage: 25 });
+
+const {
+  items: roles,
+  loading: loadingRoles,
+  page: rolesPage,
+  perPage: rolesPerPage,
+  total: rolesTotal,
+  lastPage: rolesLastPage,
+  fetch: loadRoles,
+  setPage: setRolesPage,
+  setPerPage: setRolesPerPage,
+} = usePaginatedList('/roles', { perPage: 25 });
+
+const loading = computed(() => {
+  if (activeTab.value === 'usuarios') return loadingUsuarios.value;
+  if (activeTab.value === 'roles') return loadingRoles.value;
+  return loadingPermisos.value;
+});
 
 // ── Usuario ──────────────────────────────────────────────────────────────────
 const showUserModal  = ref(false);
@@ -331,22 +383,28 @@ const selectedRol           = ref(null);
 const selectedRolPermissions= ref([]);
 
 // ── Load Data ────────────────────────────────────────────────────────────────
-const loadData = async () => {
-  loading.value = true;
+const loadPermisos = async () => {
+  loadingPermisos.value = true;
   try {
-    const [usrRes, rolRes, permRes] = await Promise.all([
-      api.get('/usuarios'),
-      api.get('/roles'),
-      api.get('/permisos-list'),
-    ]);
-    usuarios.value  = usrRes.data;
-    roles.value     = rolRes.data;
-    permisos.value  = permRes.data;
+    permisos.value = (await api.get('/permisos-list')).data;
   } catch (err) {
     console.error(err);
   } finally {
-    loading.value = false;
+    loadingPermisos.value = false;
   }
+};
+
+const loadRolesCatalog = async () => {
+  try {
+    const res = await api.get('/roles', { params: { per_page: 200 } });
+    rolesCatalog.value = res.data.data ?? res.data;
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const loadData = async () => {
+  await Promise.all([loadUsuarios(), loadRoles(), loadPermisos(), loadRolesCatalog()]);
 };
 
 onMounted(loadData);

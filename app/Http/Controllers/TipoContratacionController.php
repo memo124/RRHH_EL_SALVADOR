@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\TipoContratacion;
 use Illuminate\Http\Request;
 
 class TipoContratacionController extends Controller
 {
-    public function index()
+    use PaginatesQueries;
+
+    public function index(Request $request)
     {
-        return response()->json(TipoContratacion::orderBy('ID_TIPOCONTRATACION')->get());
+        $query = TipoContratacion::orderBy('ID_TIPOCONTRATACION');
+
+        return $this->paginateQuery($query, $request, ['TIPOCONTRATACION', 'DESCRIPCION']);
     }
 
     public function store(Request $request)

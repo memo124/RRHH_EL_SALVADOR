@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ParametrosAguinaldosController extends Controller
 {
+    use PaginatesQueries;
+
     public function index(Request $request)
     {
         $query = DB::table('PARAMETROS_AGUINALDOS')
@@ -19,7 +22,7 @@ class ParametrosAguinaldosController extends Controller
             $query->where('PARAMETROS_AGUINALDOS.ID_EMPRESA', $request->ID_EMPRESA);
         }
 
-        return response()->json($query->get());
+        return $this->paginateQuery($query, $request, ['NOMBREEMPRESA']);
     }
 
     public function store(Request $request)

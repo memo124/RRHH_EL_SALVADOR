@@ -2,23 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class SeguridadController extends Controller
 {
+    use PaginatesQueries;
+
     // ─── ROLES ────────────────────────────────────────────────────────────────
 
-    public function indexRoles()
+    public function indexRoles(Request $request)
     {
-        $roles = DB::table('ROL')->orderBy('ID_ROL')->get();
-        foreach ($roles as $r) {
+        $query = DB::table('ROL')->orderBy('ID_ROL');
+        $this->applySearch($query, $request, ['NOMBREROL', 'DESCRIPCION']);
+        $paginated = $query->paginate($this->perPage($request));
+
+        foreach ($paginated->items() as $r) {
             $r->permisos = DB::table('ROL_PERMISO')
                 ->where('ID_ROL', $r->ID_ROL)
                 ->pluck('ID_PERMISO');
         }
-        return response()->json($roles);
+
+        return response()->json($paginated);
     }
 
     public function storeRol(Request $request)
@@ -116,14 +123,16 @@ class SeguridadController extends Controller
 
     // ─── USUARIOS ─────────────────────────────────────────────────────────────
 
-    public function indexUsuarios()
+    public function indexUsuarios(Request $request)
     {
-        $usuarios = DB::table('USUARIO')
+        $query = DB::table('USUARIO')
             ->select('ID_USUARIO', 'USUARIO', 'EMAIL', 'ESACTIVO', 'BLOQUEADO', 'ID_EMPLEADO', 'TEMA')
-            ->orderBy('ID_USUARIO')
-            ->get();
+            ->orderBy('ID_USUARIO');
 
-        foreach ($usuarios as $u) {
+        $this->applySearch($query, $request, ['USUARIO', 'EMAIL']);
+        $paginated = $query->paginate($this->perPage($request));
+
+        foreach ($paginated->items() as $u) {
             $u->permissions = DB::table('USUARIO_PERMISO')
                 ->where('ID_USUARIO', $u->ID_USUARIO)
                 ->where('ES_CONCEDIDO', true)
@@ -134,7 +143,7 @@ class SeguridadController extends Controller
                 ->pluck('ID_ROL');
         }
 
-        return response()->json($usuarios);
+        return response()->json($paginated);
     }
 
     public function storeUsuario(Request $request)
@@ -215,9 +224,11 @@ class SeguridadController extends Controller
 
     // ─── PERMISOS ─────────────────────────────────────────────────────────────
 
-    public function indexPermisos()
+    public function indexPermisos(Request $request)
     {
-        return response()->json(DB::table('PERMISO')->orderBy('ID_PERMISO')->get());
+        $query = DB::table('PERMISO')->orderBy('ID_PERMISO');
+
+        return $this->paginateQuery($query, $request, ['NOMBREPERMISO', 'DESCRIPCION', 'MODULO']);
     }
 
     public function updateUsuarioPermisos(Request $request, $id)

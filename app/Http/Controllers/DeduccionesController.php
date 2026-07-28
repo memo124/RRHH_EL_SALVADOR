@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DeduccionesController extends Controller
 {
+    use PaginatesQueries;
+
     // Descuentos
-    public function indexDescuentos()
+    public function indexDescuentos(Request $request)
     {
-        return response()->json(DB::table('TIPO_DESCUENTO')->orderBy('ID_TIPODESCUENTO')->get());
+        $query = DB::table('TIPO_DESCUENTO')->orderBy('ID_TIPODESCUENTO');
+
+        return $this->paginateQuery($query, $request, ['NOMBRETIPODESC', 'DESCRIPCIONTIPODESC', 'CATEGORIA']);
     }
 
     public function storeDescuento(Request $request)
@@ -67,9 +72,11 @@ class DeduccionesController extends Controller
     }
 
     // Ingresos
-    public function indexIngresos()
+    public function indexIngresos(Request $request)
     {
-        return response()->json(DB::table('TIPO_INGRESO')->orderBy('ID_TIPOINGRESO')->get());
+        $query = DB::table('TIPO_INGRESO')->orderBy('ID_TIPOINGRESO');
+
+        return $this->paginateQuery($query, $request, ['TIPOINGRESO']);
     }
 
     public function storeIngreso(Request $request)

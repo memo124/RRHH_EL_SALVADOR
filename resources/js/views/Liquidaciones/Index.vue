@@ -13,7 +13,7 @@
 
       <div v-else class="table-shell">
         <div class="overflow-x-auto">
-          <table class="table-base">
+          <table v-table-cards class="table-cards table-base">
             <thead>
               <tr class="table-head-row">
                 <th class="table-head-cell">Empleado</th>
@@ -39,10 +39,19 @@
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
-      <div v-if="showCalc" class="modal-overlay">
-        <div class="modal-panel w-full max-w-lg">
+      <AppModalShell :open="showCalc" @close="closeCalc">
+        <div class="modal-panel w-full max-w-lg mx-auto">
           <div class="modal-body">
             <h3 class="modal-title">Calcular Liquidación</h3>
 
@@ -87,7 +96,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
@@ -96,17 +105,30 @@
 import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
 import AsyncSelect from '../../components/AsyncSelect.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { field, fieldStr } from '../../utils/fields';
 
-const items = ref([]);
+const {
+  items,
+  loading,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: load,
+  setPage,
+  setPerPage,
+} = usePaginatedList('/liquidaciones', { perPage: 25 });
+
 const showCalc = ref(false);
 const previewData = ref(null);
 const modalError = ref('');
 const saving = ref(false);
-const loading = ref(false);
 
 const defaultForm = () => ({
   ID_EMPLEADO: null,
@@ -118,15 +140,6 @@ const form = ref(defaultForm());
 
 const fmt = (v) => Number(v ?? 0).toFixed(2);
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('es-SV') : '');
-
-const load = async () => {
-  loading.value = true;
-  try {
-    items.value = (await api.get('/liquidaciones')).data;
-  } finally {
-    loading.value = false;
-  }
-};
 
 onMounted(load);
 

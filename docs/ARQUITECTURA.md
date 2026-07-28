@@ -46,14 +46,20 @@
 
 ## APIs de datos paginados
 
+Todos los endpoints `GET` de listado devuelven `{ data, current_page, last_page, per_page, total }` con parámetros `page`, `per_page`, `search`.
+
 | Endpoint | Uso |
 |----------|-----|
 | `GET /api/empleados?page&search` | Listado empleados |
 | `GET /api/empleados/select?q&page` | Select async empleados |
+| `GET /api/planillas?page&search` | Listado planillas |
 | `GET /api/planillas/{id}/detalles?page&search` | Detalle planilla |
-| `GET /api/catalogs/{tipo}/select` | Catálogos (empresas, cargos, etc.) |
+| `GET /api/paises`, `/tipo-documento`, `/empresas`, … | Mantenimientos y catálogos |
+| `GET /api/catalogs/{tipo}/select` | Catálogos (AsyncSelect) |
 
-Tipos de catálogo: `empresas`, `departamentos`, `cargos`, `tipos-planilla`, `periodos-laborales`, `cuentas`, `afps`, `bancos`, `municipios`, `distritos`, `tipos-prestamo`, `tipos-descuento`, `tipos-ingreso`, entre otros.
+Backend: trait `PaginatesQueries` en controladores de listado.
+
+Tipos de catálogo (select): `empresas`, `departamentos`, `cargos`, `tipos-planilla`, `periodos-laborales`, `cuentas`, `afps`, `bancos`, `municipios`, `distritos`, `tipos-prestamo`, `tipos-descuento`, `tipos-ingreso`, entre otros.
 
 ## APIs de conceptos por empleado
 

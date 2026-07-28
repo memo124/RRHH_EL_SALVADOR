@@ -1,9 +1,10 @@
-import { ref } from 'vue';
+import { ref, unref } from 'vue';
 import api from '../services/api';
 
 /**
  * Lista paginada server-side (tablas).
  * Espera respuesta Laravel: { data, current_page, last_page, per_page, total }
+ * @param {string|import('vue').Ref<string>|import('vue').ComputedRef<string>} endpoint
  */
 export function usePaginatedList(endpoint, options = {}) {
     const items = ref([]);
@@ -22,10 +23,10 @@ export function usePaginatedList(endpoint, options = {}) {
                 page: page.value,
                 per_page: perPage.value,
                 ...(search.value.trim() ? { search: search.value.trim() } : {}),
-                ...(options.params ?? {}),
+                ...(unref(options.params) ?? {}),
                 ...extraParams,
             };
-            const res = await api.get(endpoint, { params });
+            const res = await api.get(unref(endpoint), { params });
             const payload = res.data;
 
             if (Array.isArray(payload)) {

@@ -4,7 +4,9 @@
       <div class="dialog-backdrop" @click="onBackdrop"></div>
       <div class="dialog-scroll">
         <div class="dialog-panel" :class="variantPanelClass">
-          <div class="dialog-icon" :class="variantIconClass" aria-hidden="true">{{ variantIcon }}</div>
+          <div class="dialog-icon" :class="variantIconClass" aria-hidden="true">
+            <AppIcon :name="variantIcon" size="lg" />
+          </div>
 
           <h2 :id="titleId" class="dialog-title">{{ state.title || defaultTitle }}</h2>
           <p v-if="state.message" class="dialog-message">{{ state.message }}</p>
@@ -133,11 +135,11 @@ const defaultTitle = computed(() => ({
 }[state.value?.template] || 'Confirmar'));
 
 const variantIcon = computed(() => ({
-  danger: '⚠',
-  warning: '!',
-  info: 'ℹ',
-  success: '✓',
-}[state.value?.variant] || '!'));
+  danger: 'alert-triangle',
+  warning: 'circle-alert',
+  info: 'info',
+  success: 'check-circle',
+}[state.value?.variant] || 'circle-alert'));
 
 const variantPanelClass = computed(() => ({
   danger: 'dialog-panel-danger',

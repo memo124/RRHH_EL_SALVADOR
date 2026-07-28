@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\Empleado;
 use App\Services\LiquidacionCalculatorService;
 use Carbon\Carbon;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class LiquidacionController extends Controller
 {
+    use PaginatesQueries;
+
     protected $calculator;
 
     public function __construct(LiquidacionCalculatorService $calculator)
@@ -17,19 +20,18 @@ class LiquidacionController extends Controller
         $this->calculator = $calculator;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(
-            DB::table('LIQUIDACIONES')
-                ->join('EMPLEADO', 'LIQUIDACIONES.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
-                ->select(
-                    'LIQUIDACIONES.*',
-                    DB::raw('"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1" AS NOMBRE_EMPLEADO'),
-                    'EMPLEADO.CODIGOEMPLEADO'
-                )
-                ->orderBy('LIQUIDACIONES.ID_LIQUIDACION', 'desc')
-                ->get()
-        );
+        $query = DB::table('LIQUIDACIONES')
+            ->join('EMPLEADO', 'LIQUIDACIONES.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
+            ->select(
+                'LIQUIDACIONES.*',
+                DB::raw('"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1" AS NOMBRE_EMPLEADO'),
+                'EMPLEADO.CODIGOEMPLEADO'
+            )
+            ->orderBy('LIQUIDACIONES.ID_LIQUIDACION', 'desc');
+
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO']);
     }
 
     public function calcularPreview(Request $request)

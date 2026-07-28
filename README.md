@@ -101,10 +101,12 @@ Documentación técnica adicional:
 
 ## Rendimiento (listados y selects)
 
-- Tablas paginadas server-side (`usePaginatedList`)
+- Tablas paginadas server-side en **todas** las pantallas de listado (`usePaginatedList` + `PaginationBar`)
 - Selects async con `@tanstack/vue-virtual` (`AsyncSelect`)
 - API de catálogos: `GET /api/catalogs/{tipo}/select`
 - Empleados: `GET /api/empleados/select`
+
+Parámetros comunes en listados: `page`, `per_page` (10–100), `search` (búsqueda ILIKE en backend).
 
 ## UX (diálogos y modales)
 

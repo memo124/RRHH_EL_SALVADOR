@@ -2,10 +2,10 @@
   <DashboardLayout>
     <div class="space-y-6">
       <!-- Header -->
-      <div class="flex justify-between items-center">
+      <div class="page-header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Tipos de Contratación</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Configure los regímenes laborales y sus retenciones de ley.</p>
+          <h1 class="page-title">Tipos de Contratación</h1>
+          <p class="page-subtitle">Configure los regímenes laborales y sus retenciones de ley.</p>
         </div>
         <button
           @click="openCreateModal"
@@ -29,9 +29,9 @@
       <SkeletonTable v-if="loading" />
 
       <!-- Data Table -->
-      <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+      <div v-else class="table-shell table-scroll">
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200 dark:border-slate-700">
                 <th class="px-6 py-4">ID</th>
@@ -45,7 +45,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm text-slate-700 dark:text-slate-200">
-              <tr v-for="(tipo, index) in filteredTipos" :key="tipo.ID_TIPOCONTRATACION" :class="index % 2 === 0 ? 'table-row-even' : 'table-row-odd'" class="hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+              <tr v-for="(tipo, index) in tipos" :key="tipo.ID_TIPOCONTRATACION" :class="index % 2 === 0 ? 'table-row-even' : 'table-row-odd'" class="hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
                 <td class="px-6 py-4 font-medium">{{ tipo.ID_TIPOCONTRATACION }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ tipo.TIPOCONTRATACION }}</td>
                 <td class="px-6 py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">{{ tipo.DESCRIPCION }}</td>
@@ -67,35 +67,34 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button
-                    @click="editTipo(tipo)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold text-xs transition-colors"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    v-if="tipo.ESACTIVO"
-                    @click="inactivateTipo(tipo)"
-                    class="text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-semibold text-xs transition-colors"
-                  >
-                    Inactivar
-                  </button>
+                  <IconActionButton variant="edit" @click="editTipo(tipo)" />
+                  <IconActionButton v-if="tipo.ESACTIVO"
+                    variant="inactivate" @click="inactivateTipo(tipo)" />
                 </td>
               </tr>
-              <tr v-if="filteredTipos.length === 0">
+              <tr v-if="!tipos.length && !loading">
                 <td colspan="8" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No se encontraron registros.</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
       <!-- Modal CRUD -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showModal" @close="closeModal">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">{{ isEditing ? 'Editar Régimen' : 'Nuevo Régimen de Contratación' }}</h3>
-            <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
+            <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveForm" class="p-6 space-y-4">
             <div>
@@ -177,21 +176,34 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 
-const tipos = ref([]);
-const loading = ref(false);
-const searchQuery = ref('');
+const {
+  items: tipos,
+  loading,
+  search: searchQuery,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: loadTipos,
+  setPage,
+  setSearch,
+  setPerPage,
+} = usePaginatedList('/tipo-contratacion', { perPage: 25 });
 const showModal = ref(false);
 const isEditing = ref(false);
 const modalError = ref('');
@@ -210,29 +222,8 @@ const form = ref({
   ESACTIVO: true
 });
 
-const loadTipos = async () => {
-  loading.value = true;
-  try {
-    const response = await api.get('/tipo-contratacion');
-    tipos.value = response.data;
-  } catch (err) {
-    console.error('Error al cargar tipos de contratación', err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(() => {
-  loadTipos();
-});
-
-const filteredTipos = computed(() => {
-  if (!searchQuery.value) return tipos.value;
-  return tipos.value.filter(t =>
-    t.TIPOCONTRATACION.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    t.DESCRIPCION?.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
-});
+watch(searchQuery, (q) => setSearch(q));
+onMounted(loadTipos);
 
 const openCreateModal = () => {
   isEditing.value = false;

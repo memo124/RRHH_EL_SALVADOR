@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class HorarioController extends Controller
 {
+    use PaginatesQueries;
+
     public function index(Request $request)
     {
         $query = DB::table('HORARIOS')
@@ -18,16 +21,17 @@ class HorarioController extends Controller
             $query->where('HORARIOS.ID_EMPRESA', $request->ID_EMPRESA);
         }
 
-        $horarios = $query->get();
+        $this->applySearch($query, $request, ['NOMBREHORARIO', 'NOMBREEMPRESA']);
+        $paginated = $query->paginate($this->perPage($request));
 
-        foreach ($horarios as $h) {
+        foreach ($paginated->items() as $h) {
             $h->detalle = DB::table('HORARIO_DETALLE')
                 ->where('ID_HORARIO', $h->ID_HORARIO)
                 ->orderBy('DIA_SEMANA')
                 ->get();
         }
 
-        return response()->json($horarios);
+        return response()->json($paginated);
     }
 
     public function store(Request $request)

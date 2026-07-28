@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\PayrollCalculatorService;
@@ -13,6 +14,8 @@ use App\Models\Planilla;
 
 class PlanillaController extends Controller
 {
+    use PaginatesQueries;
+
     protected $calculator;
     protected $posting;
     protected $lifecycle;
@@ -42,16 +45,15 @@ class PlanillaController extends Controller
         ]);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $planillas = DB::table('PLANILLA')
+        $query = DB::table('PLANILLA')
             ->join('TIPO_PLANILLA', 'PLANILLA.ID_TIPOPLANILLA', '=', 'TIPO_PLANILLA.ID_TIPOPLANILLA')
             ->join('PERIODO_LABORAL', 'PLANILLA.ID_PERIODO', '=', 'PERIODO_LABORAL.ID_PERIODO')
             ->select('PLANILLA.*', 'TIPO_PLANILLA.TIPOPLANILLA', 'PERIODO_LABORAL.CALPERIODO')
-            ->orderBy('PLANILLA.ID_PLANILLA', 'desc')
-            ->get();
+            ->orderBy('PLANILLA.ID_PLANILLA', 'desc');
 
-        return response()->json($planillas);
+        return $this->paginateQuery($query, $request, ['TITULO', 'TIPOPLANILLA', 'CALPERIODO']);
     }
 
     public function store(Request $request)

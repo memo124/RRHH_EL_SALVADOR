@@ -1,13 +1,13 @@
 <template>
-  <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+  <AppModalShell :open="open" @close="$emit('close')">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] mx-auto overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
       <!-- Header -->
       <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-start">
         <div>
           <h3 class="text-lg font-bold">Archivo bancario</h3>
           <p class="text-blue-100 text-xs mt-0.5">{{ planillaTitulo }} · Seleccione banco, formato y columnas</p>
         </div>
-        <button @click="$emit('close')" class="text-white/80 hover:text-white text-xl leading-none">✕</button>
+        <button @click="$emit('close')" class="text-white/80 hover:text-white inline-flex" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
       </div>
 
       <div v-if="loading" class="p-10 text-center text-slate-500 animate-pulse">Cargando opciones...</div>
@@ -103,7 +103,7 @@
             <button type="button" data-no-lock @click="loadPreview" :disabled="busy" class="text-indigo-600 font-semibold hover:underline disabled:opacity-50">Actualizar</button>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-[11px]">
+            <table v-table-cards class="table-cards w-full text-left text-[11px]">
               <thead>
                 <tr class="bg-slate-100 dark:bg-slate-700/60">
                   <th v-for="col in previewData.columns" :key="col.key" class="px-3 py-2 font-semibold whitespace-nowrap">{{ col.label }}</th>
@@ -137,11 +137,12 @@
         </div>
       </div>
     </div>
-  </div>
+  </AppModalShell>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import AppModalShell from './AppModalShell.vue';
 import api from '../services/api';
 import { useToast } from '../composables/useToast';
 import { buildBankPreviewSheetRows, downloadXlsx } from '../utils/exportXlsx';

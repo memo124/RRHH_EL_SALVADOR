@@ -2,17 +2,19 @@
   <DashboardLayout>
     <div class="space-y-6">
       <!-- Header -->
-      <div class="flex justify-between items-center">
+      <div class="page-header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Expedientes de Empleados</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Gestione la información laboral de los empleados de la organización.</p>
+          <h1 class="page-title">Expedientes de Empleados</h1>
+          <p class="page-subtitle">Gestione la información laboral de los empleados de la organización.</p>
         </div>
+        <div class="page-header-actions">
         <button
           @click="openCreateModal"
-          class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm"
+          class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm w-full sm:w-auto"
         >
           + Nuevo Empleado
         </button>
+        </div>
       </div>
 
       <!-- Quick Search -->
@@ -29,9 +31,9 @@
       <SkeletonTable v-if="loading && !empleados.length" />
 
       <!-- Data Table -->
-      <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-        <div ref="empleadosScrollRef" class="overflow-x-auto max-h-[560px] overflow-y-auto">
-          <table class="w-full text-left border-collapse">
+      <div v-else class="table-shell table-scroll">
+        <div ref="empleadosScrollRef" class="max-h-[560px] overflow-y-auto">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead class="sticky top-0 z-10">
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200 dark:border-slate-700">
                 <th class="px-6 py-4">Código</th>
@@ -66,19 +68,9 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button
-                    @click="editEmpleado(empleados[virtualRow.index])"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 font-semibold text-xs transition-colors"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    v-if="empleados[virtualRow.index].ESACTIVO"
-                    @click="inactivateEmpleado(empleados[virtualRow.index])"
-                    class="text-rose-600 hover:text-rose-900 dark:text-rose-400 font-semibold text-xs transition-colors"
-                  >
-                    Inactivar
-                  </button>
+                  <IconActionButton variant="edit" @click="editEmpleado(empleados[virtualRow.index])" />
+                  <IconActionButton v-if="empleados[virtualRow.index].ESACTIVO"
+                    variant="inactivate" @click="inactivateEmpleado(empleados[virtualRow.index])" />
                 </td>
               </tr>
               <tr v-if="empleadoPaddingBottom > 0" aria-hidden="true">
@@ -106,7 +98,7 @@
         <div class="modal-panel modal-panel-lg w-full max-w-4xl mx-auto">
           <div class="modal-header">
             <h3 class="modal-title">{{ isEditing ? 'Editar Expediente de Empleado' : 'Registrar Nuevo Empleado' }}</h3>
-            <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
+            <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveForm" class="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div class="modal-body space-y-6">

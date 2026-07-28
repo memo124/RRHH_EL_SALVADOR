@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\TipoDescuento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DescuentoEmpleadoController extends Controller
 {
+    use PaginatesQueries;
+
     public function index(Request $request)
     {
         $query = DB::table('DESCUENTO_EMPLEADO')
@@ -29,7 +32,7 @@ class DescuentoEmpleadoController extends Controller
             $query->where('DESCUENTO_EMPLEADO.ESACTIVO', true);
         }
 
-        return response()->json($query->get());
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO', 'NOMBRETIPODESC']);
     }
 
     public function store(Request $request)

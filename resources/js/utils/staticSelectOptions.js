@@ -42,10 +42,10 @@ export const CATEGORIA_DESCUENTO_OPTIONS = [
 ];
 
 export const THEME_OPTIONS = [
-    { value: 'auto', label: '🕐 Automático (horario)' },
-    { value: 'system', label: '💻 Seguir navegador' },
-    { value: 'light', label: '☀️ Claro' },
-    { value: 'dark', label: '🌙 Oscuro' },
+    { value: 'auto', label: 'Automático (horario)', icon: 'clock' },
+    { value: 'system', label: 'Seguir navegador', icon: 'monitor' },
+    { value: 'light', label: 'Claro', icon: 'sun' },
+    { value: 'dark', label: 'Oscuro', icon: 'moon' },
 ];
 
 export const BANK_DELIMITER_OPTIONS = [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\Empleado;
 use App\Models\Planilla;
 use App\Services\HorasExtrasCalculatorService;
@@ -10,28 +11,30 @@ use Illuminate\Support\Facades\DB;
 
 class DetalleHorasExtrasController extends Controller
 {
+    use PaginatesQueries;
+
     public function __construct(
         protected HorasExtrasCalculatorService $horasExtrasCalculator
     ) {
     }
 
-    public function index($planillaId)
+    public function index(Request $request, $planillaId)
     {
-        return response()->json(
-            DB::table('DETALLES_HORASEXTRAS')
-                ->join('EMPLEADO', 'DETALLES_HORASEXTRAS.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
-                ->join('HORAS_EXTRAS', 'DETALLES_HORASEXTRAS.ID_HORASEXTRAS', '=', 'HORAS_EXTRAS.ID_HORASEXTRAS')
-                ->select(
-                    'DETALLES_HORASEXTRAS.*',
-                    DB::raw('"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1" AS NOMBRE_EMPLEADO'),
-                    'HORAS_EXTRAS.TIPOHORAEXTRA',
-                    'HORAS_EXTRAS.MODALIDAD',
-                    'HORAS_EXTRAS.JORNADA',
-                    'HORAS_EXTRAS.ES_DOMINICAL'
-                )
-                ->where('DETALLES_HORASEXTRAS.ID_PLANILLA', $planillaId)
-                ->get()
-        );
+        $query = DB::table('DETALLES_HORASEXTRAS')
+            ->join('EMPLEADO', 'DETALLES_HORASEXTRAS.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
+            ->join('HORAS_EXTRAS', 'DETALLES_HORASEXTRAS.ID_HORASEXTRAS', '=', 'HORAS_EXTRAS.ID_HORASEXTRAS')
+            ->select(
+                'DETALLES_HORASEXTRAS.*',
+                DB::raw('"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1" AS NOMBRE_EMPLEADO'),
+                'HORAS_EXTRAS.TIPOHORAEXTRA',
+                'HORAS_EXTRAS.MODALIDAD',
+                'HORAS_EXTRAS.JORNADA',
+                'HORAS_EXTRAS.ES_DOMINICAL'
+            )
+            ->where('DETALLES_HORASEXTRAS.ID_PLANILLA', $planillaId)
+            ->orderBy('DETALLES_HORASEXTRAS.ID_DETALLEHORAEXTRA', 'desc');
+
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'TIPOHORAEXTRA']);
     }
 
     public function store(Request $request, $planillaId)

@@ -7,12 +7,14 @@
         class="pointer-events-auto rounded-xl border shadow-lg px-4 py-3 flex gap-3 items-start backdrop-blur-sm"
         :class="toastClass(toast.type)"
       >
-        <span class="text-lg leading-none mt-0.5">{{ toastIcon(toast.type) }}</span>
+        <AppIcon :name="toastIconName(toast.type)" size="md" class="mt-0.5 shrink-0" />
         <div class="flex-1 min-w-0">
           <p class="font-semibold text-sm">{{ toast.title }}</p>
           <p v-if="toast.message" class="text-xs mt-0.5 opacity-90">{{ toast.message }}</p>
         </div>
-        <button type="button" @click="remove(toast.id)" class="text-current opacity-60 hover:opacity-100 text-sm leading-none">✕</button>
+        <button type="button" @click="remove(toast.id)" class="text-current opacity-60 hover:opacity-100 shrink-0" aria-label="Cerrar">
+          <AppIcon name="x" size="sm" />
+        </button>
       </div>
     </TransitionGroup>
   </div>
@@ -29,7 +31,11 @@ const toastClass = (type) => ({
   info: 'bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-100',
 }[type] || 'bg-slate-50 border-slate-200 text-slate-900');
 
-const toastIcon = (type) => ({ success: '✓', error: '!', info: 'ℹ' }[type] || '•');
+const toastIconName = (type) => ({
+  success: 'check-circle',
+  error: 'circle-alert',
+  info: 'info',
+}[type] || 'info');
 </script>
 
 <style scoped>

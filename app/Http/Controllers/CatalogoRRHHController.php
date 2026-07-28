@@ -2,16 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CatalogoRRHHController extends Controller
 {
+    use PaginatesQueries;
+
+    private function paginateCatalog(Request $request, string $table, string $orderCol, array $searchCols)
+    {
+        return $this->paginateQuery(DB::table($table)->orderBy($orderCol), $request, $searchCols);
+    }
+
     // ─── AFP ──────────────────────────────────────────────────────────────────
 
-    public function indexAfp()
+    public function indexAfp(Request $request)
     {
-        return response()->json(DB::table('AFP')->orderBy('ID_AFP')->get());
+        return $this->paginateCatalog($request, 'AFP', 'ID_AFP', ['NOMBREAFP', 'CODIGOPREVISIONAL']);
     }
 
     public function storeAfp(Request $request)
@@ -76,9 +84,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── BANCO ────────────────────────────────────────────────────────────────
 
-    public function indexBancos()
+    public function indexBancos(Request $request)
     {
-        return response()->json(DB::table('BANCO')->orderBy('ID_BANCO')->get());
+        return $this->paginateCatalog($request, 'BANCO', 'ID_BANCO', ['NOMBREBANCO', 'ALIAS']);
     }
 
     public function storeBanco(Request $request)
@@ -131,9 +139,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── ESTADO CIVIL ─────────────────────────────────────────────────────────
 
-    public function indexEstadoCivil()
+    public function indexEstadoCivil(Request $request)
     {
-        return response()->json(DB::table('ESTADO_CIVIL')->orderBy('ID_ESTADOCIVIL')->get());
+        return $this->paginateCatalog($request, 'ESTADO_CIVIL', 'ID_ESTADOCIVIL', ['NOMBREESTADOCIVIL']);
     }
 
     public function storeEstadoCivil(Request $request)
@@ -174,9 +182,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── EDUCACIÓN ACADÉMICA ──────────────────────────────────────────────────
 
-    public function indexEducacion()
+    public function indexEducacion(Request $request)
     {
-        return response()->json(DB::table('EDUCACION_ACADEMICA')->orderBy('ID_EDUCACIONACADEMICA')->get());
+        return $this->paginateCatalog($request, 'EDUCACION_ACADEMICA', 'ID_EDUCACIONACADEMICA', ['DESCRIPCION']);
     }
 
     public function storeEducacion(Request $request)
@@ -221,9 +229,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── PROFESIONES Y OFICIOS ────────────────────────────────────────────────
 
-    public function indexProfesiones()
+    public function indexProfesiones(Request $request)
     {
-        return response()->json(DB::table('PROFESIONES_OFICIOS')->orderBy('ID_PROFESIONES_OFICIOS')->get());
+        return $this->paginateCatalog($request, 'PROFESIONES_OFICIOS', 'ID_PROFESIONES_OFICIOS', ['PROFESION_OFICIO']);
     }
 
     public function storeProfesion(Request $request)
@@ -264,9 +272,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── PERFIL DE PAGO ───────────────────────────────────────────────────────
 
-    public function indexPerfilPago()
+    public function indexPerfilPago(Request $request)
     {
-        return response()->json(DB::table('PERFIL_PAGO')->orderBy('ID_PERFILPAGO')->get());
+        return $this->paginateCatalog($request, 'PERFIL_PAGO', 'ID_PERFILPAGO', ['PEFILPAGO']);
     }
 
     public function storePerfilPago(Request $request)
@@ -315,9 +323,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── FRECUENCIA DE PAGO ───────────────────────────────────────────────────
 
-    public function indexFrecuenciaPago()
+    public function indexFrecuenciaPago(Request $request)
     {
-        return response()->json(DB::table('FRECUENCIA_PAGO')->orderBy('ID_FRECUENCIAPAGO')->get());
+        return $this->paginateCatalog($request, 'FRECUENCIA_PAGO', 'ID_FRECUENCIAPAGO', ['NOMBREFRECUENCIA']);
     }
 
     public function storeFrecuenciaPago(Request $request)
@@ -362,9 +370,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── TIPO PLANILLA ────────────────────────────────────────────────────────
 
-    public function indexTipoPlanilla()
+    public function indexTipoPlanilla(Request $request)
     {
-        return response()->json(DB::table('TIPO_PLANILLA')->orderBy('ID_TIPOPLANILLA')->get());
+        return $this->paginateCatalog($request, 'TIPO_PLANILLA', 'ID_TIPOPLANILLA', ['TIPOPLANILLA', 'DESCRIPCION']);
     }
 
     public function storeTipoPlanilla(Request $request)
@@ -433,9 +441,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── TIPO PRÉSTAMO ────────────────────────────────────────────────────────
 
-    public function indexTipoPrestamo()
+    public function indexTipoPrestamo(Request $request)
     {
-        return response()->json(DB::table('TIPO_PRESTAMO')->orderBy('ID_TIPOPRESTAMO')->get());
+        return $this->paginateCatalog($request, 'TIPO_PRESTAMO', 'ID_TIPOPRESTAMO', ['NOMBREPRESTAMO', 'OBSERVACIONES']);
     }
 
     public function storeTipoPrestamo(Request $request)
@@ -480,9 +488,9 @@ class CatalogoRRHHController extends Controller
 
     // ─── HORAS EXTRAS ─────────────────────────────────────────────────────────
 
-    public function indexHorasExtras()
+    public function indexHorasExtras(Request $request)
     {
-        return response()->json(DB::table('HORAS_EXTRAS')->orderBy('ID_HORASEXTRAS')->get());
+        return $this->paginateCatalog($request, 'HORAS_EXTRAS', 'ID_HORASEXTRAS', ['TIPOHORAEXTRA', 'CODIGO', 'MODALIDAD']);
     }
 
     public function storeHorasExtras(Request $request)

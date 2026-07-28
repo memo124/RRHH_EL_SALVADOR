@@ -1,11 +1,13 @@
 <template>
   <DashboardLayout>
     <div class="space-y-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Conceptos por Empleado</h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400">
-          Administre préstamos, descuentos e ingresos adicionales que se aplican en la planilla.
-        </p>
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Conceptos por Empleado</h1>
+          <p class="page-subtitle">
+            Administre préstamos, descuentos e ingresos adicionales que se aplican en la planilla.
+          </p>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -33,11 +35,11 @@
             nullable
             placeholder="Todos los empleados"
             search-placeholder="Buscar empleado…"
-            @change="loadTabData"
+            @change="reload"
           />
         </div>
         <label class="flex items-center gap-2 text-sm mt-5 text-slate-700 dark:text-slate-200">
-          <input type="checkbox" v-model="soloActivos" @change="loadTabData" class="rounded border-slate-300 dark:border-slate-600" />
+          <input type="checkbox" v-model="soloActivos" @change="reload" class="rounded border-slate-300 dark:border-slate-600" />
           <span>Solo activos</span>
         </label>
       </div>
@@ -51,7 +53,7 @@
         </div>
         <SkeletonTable v-if="loading" />
         <div v-else class="table-shell">
-          <table class="table-base">
+          <table v-table-cards class="table-cards table-base">
             <thead>
               <tr class="table-head-row">
                 <th class="table-head-cell">Empleado</th>
@@ -65,7 +67,7 @@
               </tr>
             </thead>
             <tbody class="table-body">
-              <tr v-for="(p, idx) in prestamos" :key="p.ID_PRESTAMO" :class="idx % 2 === 0 ? 'table-row-even' : 'table-row-odd'">
+              <tr v-for="(p, idx) in items" :key="p.ID_PRESTAMO" :class="idx % 2 === 0 ? 'table-row-even' : 'table-row-odd'">
                 <td class="table-body-cell">
                   <div class="font-semibold text-slate-900 dark:text-white">{{ p.NOMBRE_EMPLEADO }}</div>
                   <div class="text-xs text-slate-500 dark:text-slate-400">{{ p.CODIGOEMPLEADO }}</div>
@@ -81,16 +83,25 @@
                   </span>
                 </td>
                 <td class="table-body-cell text-right space-x-2 whitespace-nowrap">
-                  <button @click="openDetallePrestamo(p)" class="text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:underline">Detalle</button>
-                  <button @click="openPrestamoModal(p)" class="text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:underline">Editar</button>
-                  <button v-if="p.PRESTAMOESTADO" @click="cancelarPrestamo(p)" class="text-rose-600 dark:text-rose-400 text-xs font-semibold hover:underline">Cancelar</button>
+                  <IconActionButton variant="view" @click="openDetallePrestamo(p)" />
+                  <IconActionButton variant="edit" @click="openPrestamoModal(p)" />
+                  <IconActionButton v-if="p.PRESTAMOESTADO" variant="cancel" @click="cancelarPrestamo(p)" />
                 </td>
               </tr>
-              <tr v-if="prestamos.length === 0">
+              <tr v-if="items.length === 0">
                 <td colspan="8" class="table-body-cell py-8 text-center text-slate-500 dark:text-slate-400">No hay préstamos registrados.</td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :last-page="lastPage"
+            :per-page="perPage"
+            :total="total"
+            :loading="loading"
+            @update:page="setPage"
+            @update:per-page="setPerPage"
+          />
         </div>
       </div>
 
@@ -103,7 +114,7 @@
         </div>
         <SkeletonTable v-if="loading" />
         <div v-else class="table-shell">
-          <table class="table-base">
+          <table v-table-cards class="table-cards table-base">
             <thead>
               <tr class="table-head-row">
                 <th class="table-head-cell">Empleado</th>
@@ -116,7 +127,7 @@
               </tr>
             </thead>
             <tbody class="table-body">
-              <tr v-for="(d, idx) in descuentos" :key="d.ID_DESCUENTOEMPLEADO" :class="idx % 2 === 0 ? 'table-row-even' : 'table-row-odd'">
+              <tr v-for="(d, idx) in items" :key="d.ID_DESCUENTOEMPLEADO" :class="idx % 2 === 0 ? 'table-row-even' : 'table-row-odd'">
                 <td class="table-body-cell">
                   <div class="font-semibold text-slate-900 dark:text-white">{{ d.NOMBRE_EMPLEADO }}</div>
                   <div class="text-xs text-slate-500 dark:text-slate-400">{{ d.CODIGOEMPLEADO }}</div>
@@ -135,16 +146,25 @@
                   </span>
                 </td>
                 <td class="table-body-cell text-right space-x-2 whitespace-nowrap">
-                  <button @click="openDetalleDescuento(d)" class="text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:underline">Detalle</button>
-                  <button @click="openDescuentoModal(d)" class="text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:underline">Editar</button>
-                  <button v-if="d.ESACTIVO" @click="inactivarDescuento(d)" class="text-rose-600 dark:text-rose-400 text-xs font-semibold hover:underline">Inactivar</button>
+                  <IconActionButton variant="view" @click="openDetalleDescuento(d)" />
+                  <IconActionButton variant="edit" @click="openDescuentoModal(d)" />
+                  <IconActionButton v-if="d.ESACTIVO" variant="inactivate" @click="inactivarDescuento(d)" />
                 </td>
               </tr>
-              <tr v-if="descuentos.length === 0">
+              <tr v-if="items.length === 0">
                 <td colspan="7" class="table-body-cell py-8 text-center text-slate-500 dark:text-slate-400">No hay descuentos registrados.</td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :last-page="lastPage"
+            :per-page="perPage"
+            :total="total"
+            :loading="loading"
+            @update:page="setPage"
+            @update:per-page="setPerPage"
+          />
         </div>
       </div>
 
@@ -157,7 +177,7 @@
         </div>
         <SkeletonTable v-if="loading" />
         <div v-else class="table-shell">
-          <table class="table-base">
+          <table v-table-cards class="table-cards table-base">
             <thead>
               <tr class="table-head-row">
                 <th class="table-head-cell">Empleado</th>
@@ -169,7 +189,7 @@
               </tr>
             </thead>
             <tbody class="table-body">
-              <tr v-for="(i, idx) in ingresos" :key="i.ID_OTROINGRESO" :class="idx % 2 === 0 ? 'table-row-even' : 'table-row-odd'">
+              <tr v-for="(i, idx) in items" :key="i.ID_OTROINGRESO" :class="idx % 2 === 0 ? 'table-row-even' : 'table-row-odd'">
                 <td class="table-body-cell">
                   <div class="font-semibold text-slate-900 dark:text-white">{{ i.NOMBRE_EMPLEADO }}</div>
                   <div class="text-xs text-slate-500 dark:text-slate-400">{{ i.CODIGOEMPLEADO }}</div>
@@ -185,16 +205,25 @@
                   </span>
                 </td>
                 <td class="table-body-cell text-right space-x-2 whitespace-nowrap">
-                  <button @click="openDetalleIngreso(i)" class="text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:underline">Detalle</button>
-                  <button @click="openIngresoModal(i)" class="text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:underline">Editar</button>
-                  <button v-if="i.ESACTIVO" @click="inactivarIngreso(i)" class="text-rose-600 dark:text-rose-400 text-xs font-semibold hover:underline">Inactivar</button>
+                  <IconActionButton variant="view" @click="openDetalleIngreso(i)" />
+                  <IconActionButton variant="edit" @click="openIngresoModal(i)" />
+                  <IconActionButton v-if="i.ESACTIVO" variant="inactivate" @click="inactivarIngreso(i)" />
                 </td>
               </tr>
-              <tr v-if="ingresos.length === 0">
+              <tr v-if="items.length === 0">
                 <td colspan="6" class="table-body-cell py-8 text-center text-slate-500 dark:text-slate-400">No hay ingresos adicionales registrados.</td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :last-page="lastPage"
+            :per-page="perPage"
+            :total="total"
+            :loading="loading"
+            @update:page="setPage"
+            @update:per-page="setPerPage"
+          />
         </div>
       </div>
 
@@ -203,7 +232,7 @@
         <div class="modal-panel max-w-lg w-full mx-auto">
           <div class="modal-header">
             <h3 class="modal-title">{{ editingPrestamo ? 'Editar Préstamo' : 'Nuevo Préstamo' }}</h3>
-            <button @click="showPrestamoModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
+            <button @click="showPrestamoModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="savePrestamo" class="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div class="modal-body">
@@ -273,7 +302,7 @@
         <div class="modal-panel max-w-lg w-full mx-auto">
           <div class="modal-header">
             <h3 class="modal-title">{{ editingDescuento ? 'Editar Descuento' : 'Nuevo Descuento' }}</h3>
-            <button @click="showDescuentoModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
+            <button @click="showDescuentoModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveDescuento" class="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div class="modal-body">
@@ -344,7 +373,7 @@
         <div class="modal-panel max-w-lg w-full mx-auto">
           <div class="modal-header">
             <h3 class="modal-title">{{ editingIngreso ? 'Editar Ingreso' : 'Nuevo Ingreso Adicional' }}</h3>
-            <button @click="showIngresoModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
+            <button @click="showIngresoModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveIngreso" class="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div class="modal-body">
@@ -399,7 +428,7 @@
         <div class="modal-panel max-w-3xl w-full mx-auto">
           <div class="modal-header">
             <h3 class="modal-title">{{ detalleTitulo }}</h3>
-            <button @click="closeDetalleModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
+            <button @click="closeDetalleModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <div class="modal-body space-y-4">
             <div v-if="detalleLoading" class="py-8 text-center text-slate-500 dark:text-slate-400">Cargando historial…</div>
@@ -412,7 +441,7 @@
               </div>
 
               <div class="table-shell">
-                <table class="table-base">
+                <table v-table-cards class="table-cards table-base">
                   <thead>
                     <tr class="table-head-row">
                       <template v-if="detalleTipo === 'prestamo'">
@@ -437,13 +466,7 @@
                         <td class="table-body-cell">{{ abono.CONCEPTO || 'Abono' }}</td>
                         <td class="table-body-cell">{{ abono.FUERA_PLANILLA ? 'Fuera de planilla' : 'Planilla' }}</td>
                         <td class="table-body-cell text-right">
-                          <button
-                            type="button"
-                            @click="eliminarAbono(abono)"
-                            class="text-rose-600 dark:text-rose-400 text-xs font-semibold hover:underline"
-                          >
-                            Eliminar
-                          </button>
+                          <IconActionButton variant="delete" @click="eliminarAbono(abono)" />
                         </td>
                       </tr>
                       <tr v-if="detalleAbonos.length === 0">
@@ -479,10 +502,12 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
 import AppModalShell from '../../components/AppModalShell.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { useToast } from '../../composables/useToast';
@@ -496,14 +521,35 @@ const tabs = [
 ];
 
 const activeTab = ref('prestamos');
-const loading = ref(false);
 const filtroEmpleado = ref(null);
 const soloActivos = ref(true);
 const modalError = ref('');
 
-const prestamos = ref([]);
-const descuentos = ref([]);
-const ingresos = ref([]);
+const tabEndpoints = {
+  prestamos: '/prestamos',
+  descuentos: '/descuentos-empleado',
+  ingresos: '/otros-ingresos',
+};
+const endpoint = computed(() => tabEndpoints[activeTab.value]);
+const listParams = computed(() => {
+  const p = {};
+  if (filtroEmpleado.value) p.ID_EMPLEADO = filtroEmpleado.value;
+  if (soloActivos.value) p.solo_activos = 1;
+  return p;
+});
+
+const {
+  items,
+  loading,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: reload,
+  setPage,
+  setPerPage,
+  reset,
+} = usePaginatedList(endpoint, { perPage: 25, params: listParams });
 
 const showPrestamoModal = ref(false);
 const showDescuentoModal = ref(false);
@@ -530,38 +576,9 @@ const detallePrestamoMeta = ref(null);
 const fmt = (v) => Number(v || 0).toFixed(2);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-SV') : '';
 
-const queryParams = () => {
-  const p = {};
-  if (filtroEmpleado.value) p.ID_EMPLEADO = filtroEmpleado.value;
-  if (soloActivos.value) p.solo_activos = 1;
-  return p;
-};
-
-const loadTabData = async () => {
-  loading.value = true;
-  modalError.value = '';
-  try {
-    const params = queryParams();
-    if (activeTab.value === 'prestamos') {
-      const res = await api.get('/prestamos', { params });
-      prestamos.value = res.data;
-    } else if (activeTab.value === 'descuentos') {
-      const res = await api.get('/descuentos-empleado', { params });
-      descuentos.value = res.data;
-    } else {
-      const res = await api.get('/otros-ingresos', { params });
-      ingresos.value = res.data;
-    }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-watch(activeTab, loadTabData);
-
-onMounted(loadTabData);
+watch(activeTab, () => { reset(); reload(); });
+watch([filtroEmpleado, soloActivos], () => { reset(); reload(); });
+onMounted(reload);
 
 // Préstamos
 const openPrestamoModal = (p = null) => {
@@ -581,7 +598,7 @@ const savePrestamo = async () => {
       await api.post('/prestamos', prestamoForm.value);
     }
     showPrestamoModal.value = false;
-    loadTabData();
+    reload();
   } catch (err) {
     modalError.value = err.response?.data?.message || 'Error al guardar el préstamo.';
   }
@@ -595,7 +612,7 @@ const cancelarPrestamo = async (p) => {
     confirmText: 'Sí, cancelar',
   })) return;
   await api.delete(`/prestamos/${p.ID_PRESTAMO}`);
-  loadTabData();
+  reload();
 };
 
 // Descuentos
@@ -617,7 +634,7 @@ const saveDescuento = async () => {
       await api.post('/descuentos-empleado', payload);
     }
     showDescuentoModal.value = false;
-    loadTabData();
+    reload();
   } catch (err) {
     modalError.value = err.response?.data?.message || 'Error al guardar el descuento.';
   }
@@ -631,7 +648,7 @@ const inactivarDescuento = async (d) => {
     confirmText: 'Sí, inactivar',
   })) return;
   await api.delete(`/descuentos-empleado/${d.ID_DESCUENTOEMPLEADO}`);
-  loadTabData();
+  reload();
 };
 
 // Ingresos
@@ -653,7 +670,7 @@ const saveIngreso = async () => {
       await api.post('/otros-ingresos', payload);
     }
     showIngresoModal.value = false;
-    loadTabData();
+    reload();
   } catch (err) {
     modalError.value = err.response?.data?.message || 'Error al guardar el ingreso.';
   }
@@ -667,7 +684,7 @@ const inactivarIngreso = async (i) => {
     confirmText: 'Sí, inactivar',
   })) return;
   await api.delete(`/otros-ingresos/${i.ID_OTROINGRESO}`);
-  loadTabData();
+  reload();
 };
 
 const closeDetalleModal = () => {
@@ -731,7 +748,7 @@ const eliminarAbono = async (abono) => {
   try {
     await api.delete(`/prestamos/${detallePrestamoId.value}/abonos/${abono.ID_PRESTAMOABONO}`);
     await cargarDetallePrestamo(detallePrestamoId.value);
-    loadTabData();
+    reload();
   } catch (err) {
     toast.error('Error', err.response?.data?.message || err.response?.data?.error || 'No se pudo eliminar la cuota.');
   }

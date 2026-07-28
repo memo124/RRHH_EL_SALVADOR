@@ -1,10 +1,10 @@
 <template>
   <DashboardLayout>
     <div class="space-y-6">
-      <div class="flex justify-between items-center">
+      <div class="page-header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Catálogos MH</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Administración de Tipos de Documento de Identidad MH.</p>
+          <h1 class="page-title">Catálogos MH</h1>
+          <p class="page-subtitle">Administración de Tipos de Documento de Identidad MH.</p>
         </div>
         <button
           @click="openCreateModal"
@@ -25,9 +25,9 @@
 
       <SkeletonTable v-if="loading" />
 
-      <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+      <div v-else class="table-shell table-scroll">
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200 dark:border-slate-700">
                 <th class="px-6 py-4">ID</th>
@@ -39,7 +39,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm text-slate-700 dark:text-slate-200">
-              <tr v-for="(doc, index) in filteredDocs" :key="doc.ID_TIPODOCUMENTO" :class="index % 2 === 0 ? 'table-row-even' : 'table-row-odd'" class="hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+              <tr v-for="(doc, index) in docs" :key="doc.ID_TIPODOCUMENTO" :class="index % 2 === 0 ? 'table-row-even' : 'table-row-odd'" class="hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
                 <td class="px-6 py-4 font-medium">{{ doc.ID_TIPODOCUMENTO }}</td>
                 <td class="px-6 py-4 font-bold text-indigo-600 dark:text-indigo-400">{{ doc.CODIGO_MH }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ doc.NOMBREDOCUMENTO }}</td>
@@ -50,35 +50,34 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button
-                    @click="editDoc(doc)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold text-xs"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    v-if="doc.ESACTIVO"
-                    @click="inactivateDoc(doc)"
-                    class="text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-semibold text-xs"
-                  >
-                    Inactivar
-                  </button>
+                  <IconActionButton variant="edit" @click="editDoc(doc)" />
+                  <IconActionButton v-if="doc.ESACTIVO"
+                    variant="inactivate" @click="inactivateDoc(doc)" />
                 </td>
               </tr>
-              <tr v-if="filteredDocs.length === 0">
+              <tr v-if="!docs.length && !loading">
                 <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No se encontraron registros.</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
       <!-- Modal -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showModal" @close="closeModal">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">{{ isEditing ? 'Editar Documento' : 'Nuevo Documento MH' }}</h3>
-            <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
+            <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveForm" class="p-6 space-y-4">
             <div>
@@ -134,21 +133,35 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 
-const docs = ref([]);
-const loading = ref(false);
-const searchQuery = ref('');
+const {
+  items: docs,
+  loading,
+  search: searchQuery,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: loadDocs,
+  setPage,
+  setSearch,
+  setPerPage,
+} = usePaginatedList('/tipo-documento', { perPage: 25 });
+
 const showModal = ref(false);
 const isEditing = ref(false);
 const modalError = ref('');
@@ -161,27 +174,8 @@ const form = ref({
   ESACTIVO: true
 });
 
-const loadDocs = async () => {
-  loading.value = true;
-  try {
-    const res = await api.get('/tipo-documento');
-    docs.value = res.data;
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
-};
-
+watch(searchQuery, (q) => setSearch(q));
 onMounted(loadDocs);
-
-const filteredDocs = computed(() => {
-  if (!searchQuery.value) return docs.value;
-  return docs.value.filter(d =>
-    d.NOMBREDOCUMENTO.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    d.CODIGO_MH.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
-});
 
 const openCreateModal = () => {
   isEditing.value = false;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\Empleado;
 use App\Services\AttendanceProcessingService;
 use Carbon\Carbon;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class AsistenciaController extends Controller
 {
+    use PaginatesQueries;
+
     protected $attendanceService;
 
     public function __construct(AttendanceProcessingService $attendanceService)
@@ -50,7 +53,7 @@ class AsistenciaController extends Controller
             $query->where('ASISTENCIA_DIARIA.ID_EMPLEADO', $request->ID_EMPLEADO);
         }
 
-        return response()->json($query->get());
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO']);
     }
 
     public function storeMarcacion(Request $request)
@@ -109,13 +112,12 @@ class AsistenciaController extends Controller
             ->join('EMPLEADO', 'MARCACION_RAW.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
             ->select('MARCACION_RAW.*', DB::raw('"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1" AS NOMBRE_EMPLEADO'))
             ->where('PROCESADO', false)
-            ->orderBy('FECHA_HORA_MARCACION', 'desc')
-            ->limit(200);
+            ->orderBy('FECHA_HORA_MARCACION', 'desc');
 
         if ($request->filled('ID_EMPLEADO')) {
             $query->where('MARCACION_RAW.ID_EMPLEADO', $request->ID_EMPLEADO);
         }
 
-        return response()->json($query->get());
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGO_RELOJ']);
     }
 }

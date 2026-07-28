@@ -1,15 +1,15 @@
 <template>
   <DashboardLayout>
     <div class="space-y-6">
-      <div class="flex justify-between items-center">
+      <div class="page-header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Mantenimiento de Deducciones e Ingresos</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Configure los tipos de descuentos e ingresos del personal.</p>
+          <h1 class="page-title">Mantenimiento de Deducciones e Ingresos</h1>
+          <p class="page-subtitle">Configure los tipos de descuentos e ingresos del personal.</p>
         </div>
       </div>
 
       <!-- Tabs Navigation -->
-      <div class="flex border-b border-slate-200 dark:border-slate-700">
+      <div class="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
         <button
           @click="activeTab = 'descuentos'"
           :class="activeTab === 'descuentos' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'"
@@ -28,9 +28,9 @@
 
       <!-- Tab Content: Descuentos -->
       <div v-if="activeTab === 'descuentos'" class="space-y-4">
-        <div class="flex justify-between items-center">
+        <div class="page-toolbar">
           <input
-            v-model="searchDescuentos"
+            v-model="searchQuery"
             type="text"
             placeholder="Buscar descuento..."
             class="w-full max-w-xs px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none"
@@ -45,8 +45,8 @@
 
         <SkeletonTable v-if="loading" />
 
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
                 <th class="px-6 py-4">ID</th>
@@ -58,7 +58,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="desc in filteredDescuentos" :key="desc.ID_TIPODESCUENTO">
+              <tr v-for="desc in items" :key="desc.ID_TIPODESCUENTO">
                 <td class="px-6 py-4">{{ desc.ID_TIPODESCUENTO }}</td>
                 <td class="px-6 py-4">
                   <span :class="categoriaBadgeClass(desc.CATEGORIA)" class="px-2 py-0.5 rounded text-xs font-semibold">
@@ -73,20 +73,29 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="editDescuento(desc)" class="text-indigo-600 font-semibold text-xs">Editar</button>
-                  <button v-if="desc.ESACTIVO" @click="inactivateDescuento(desc)" class="text-rose-600 font-semibold text-xs">Inactivar</button>
+                  <IconActionButton variant="edit" @click="editDescuento(desc)" />
+                  <IconActionButton v-if="desc.ESACTIVO" variant="inactivate" @click="inactivateDescuento(desc)" />
                 </td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :last-page="lastPage"
+            :per-page="perPage"
+            :total="total"
+            :loading="loading"
+            @update:page="setPage"
+            @update:per-page="setPerPage"
+          />
         </div>
       </div>
 
       <!-- Tab Content: Ingresos -->
       <div v-if="activeTab === 'ingresos'" class="space-y-4">
-        <div class="flex justify-between items-center">
+        <div class="page-toolbar">
           <input
-            v-model="searchIngresos"
+            v-model="searchQuery"
             type="text"
             placeholder="Buscar ingreso..."
             class="w-full max-w-xs px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900"
@@ -101,8 +110,8 @@
 
         <SkeletonTable v-if="loading" />
 
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
                 <th class="px-6 py-4">ID</th>
@@ -112,7 +121,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="ing in filteredIngresos" :key="ing.ID_TIPOINGRESO">
+              <tr v-for="ing in items" :key="ing.ID_TIPOINGRESO">
                 <td class="px-6 py-4">{{ ing.ID_TIPOINGRESO }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ ing.TIPOINGRESO }}</td>
                 <td class="px-6 py-4">
@@ -121,21 +130,30 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="editIngreso(ing)" class="text-indigo-600 font-semibold text-xs">Editar</button>
-                  <button v-if="ing.ESACTIVO" @click="inactivateIngreso(ing)" class="text-rose-600 font-semibold text-xs">Inactivar</button>
+                  <IconActionButton variant="edit" @click="editIngreso(ing)" />
+                  <IconActionButton v-if="ing.ESACTIVO" variant="inactivate" @click="inactivateIngreso(ing)" />
                 </td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :last-page="lastPage"
+            :per-page="perPage"
+            :total="total"
+            :loading="loading"
+            @update:page="setPage"
+            @update:per-page="setPerPage"
+          />
         </div>
       </div>
 
       <!-- Descuento Modal -->
-      <div v-if="showDescuentoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showDescuentoModal" @close="showDescuentoModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-955 dark:text-white">{{ isEditing ? 'Editar Descuento' : 'Nuevo Descuento' }}</h3>
-            <button @click="showDescuentoModal = false" class="text-slate-400 font-semibold">✕</button>
+            <button @click="showDescuentoModal = false" class="text-slate-400 font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveDescuento" class="p-6 space-y-4">
             <div>
@@ -166,14 +184,14 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
 
       <!-- Ingreso Modal -->
-      <div v-if="showIngresoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showIngresoModal" @close="showIngresoModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-955 dark:text-white">{{ isEditing ? 'Editar Ingreso' : 'Nuevo Ingreso' }}</h3>
-            <button @click="showIngresoModal = false" class="text-slate-400 font-semibold">✕</button>
+            <button @click="showIngresoModal = false" class="text-slate-400 font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="saveIngreso" class="p-6 space-y-4">
             <div>
@@ -191,25 +209,39 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { CATEGORIA_DESCUENTO_OPTIONS } from '../../utils/staticSelectOptions';
 
 const activeTab = ref('descuentos');
-const descuentos = ref([]);
-const ingresos = ref([]);
-const loading = ref(false);
-const searchDescuentos = ref('');
-const searchIngresos = ref('');
+const endpoint = computed(() => (activeTab.value === 'descuentos' ? '/tipo-descuento' : '/tipo-ingreso'));
+
+const {
+  items,
+  loading,
+  search: searchQuery,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: reload,
+  setPage,
+  setSearch,
+  setPerPage,
+  reset,
+} = usePaginatedList(endpoint, { perPage: 25 });
 const showDescuentoModal = ref(false);
 const showIngresoModal = ref(false);
 const isEditing = ref(false);
@@ -225,30 +257,9 @@ const categoriaBadgeClass = (cat) => ({
   DESCUENTO: 'bg-violet-50 text-violet-700',
 }[cat] || 'bg-slate-50 text-slate-600');
 
-const loadData = async () => {
-  loading.value = true;
-  try {
-    const [descRes, ingRes] = await Promise.all([api.get('/tipo-descuento'), api.get('/tipo-ingreso')]);
-    descuentos.value = descRes.data;
-    ingresos.value = ingRes.data;
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(loadData);
-
-const filteredDescuentos = computed(() => {
-  if (!searchDescuentos.value) return descuentos.value;
-  return descuentos.value.filter(d => d.NOMBRETIPODESC.toLowerCase().includes(searchDescuentos.value.toLowerCase()));
-});
-
-const filteredIngresos = computed(() => {
-  if (!searchIngresos.value) return ingresos.value;
-  return ingresos.value.filter(i => i.TIPOINGRESO.toLowerCase().includes(searchIngresos.value.toLowerCase()));
-});
+watch(searchQuery, (q) => setSearch(q));
+watch(activeTab, () => { reset(); reload(); });
+onMounted(reload);
 
 // Descuento Handlers
 const openCreateDescuento = () => {
@@ -271,7 +282,7 @@ const saveDescuento = async () => {
       await api.post('/tipo-descuento', descuentoForm.value);
     }
     showDescuentoModal.value = false;
-    loadData();
+    reload();
   } catch (err) { modalError.value = 'Error al guardar.'; }
 };
 const inactivateDescuento = async (desc) => {
@@ -282,7 +293,7 @@ const inactivateDescuento = async (desc) => {
     confirmText: 'Sí, inactivar',
   })) return;
   await api.delete(`/tipo-descuento/${desc.ID_TIPODESCUENTO}`);
-  loadData();
+  reload();
 };
 
 // Ingreso Handlers
@@ -306,7 +317,7 @@ const saveIngreso = async () => {
       await api.post('/tipo-ingreso', ingresoForm.value);
     }
     showIngresoModal.value = false;
-    loadData();
+    reload();
   } catch (err) { modalError.value = 'Error al guardar.'; }
 };
 const inactivateIngreso = async (ing) => {
@@ -317,6 +328,6 @@ const inactivateIngreso = async (ing) => {
     confirmText: 'Sí, inactivar',
   })) return;
   await api.delete(`/tipo-ingreso/${ing.ID_TIPOINGRESO}`);
-  loadData();
+  reload();
 };
 </script>

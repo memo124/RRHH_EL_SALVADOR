@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\TipoDescuento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PrestamosController extends Controller
 {
+    use PaginatesQueries;
+
     public function index(Request $request)
     {
         $query = DB::table('PRESTAMOS')
@@ -31,7 +34,7 @@ class PrestamosController extends Controller
             $query->where('PRESTAMOS.PRESTAMOESTADO', true);
         }
 
-        return response()->json($query->get());
+        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO', 'NOMBREPRESTAMO', 'NOMBRETIPODESC']);
     }
 
     public function show($id)

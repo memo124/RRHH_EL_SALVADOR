@@ -117,7 +117,7 @@ class AuthController extends Controller
         if ($permissions->contains('GEOGRAFIA_VIEW')) {
             $menu[] = [
                 'group' => 'Geográfico',
-                'icon' => '🌐',
+                'icon' => 'globe',
                 'options' => [
                     ['name' => 'Geografía', 'route' => '/geografia']
                 ]
@@ -126,7 +126,7 @@ class AuthController extends Controller
         if ($permissions->contains('MH_VIEW')) {
             $menu[] = [
                 'group' => 'Catálogos MH',
-                'icon' => '📄',
+                'icon' => 'file-text',
                 'options' => [
                     ['name' => 'Documentos de Identidad', 'route' => '/catalogos-mh']
                 ]
@@ -135,7 +135,7 @@ class AuthController extends Controller
         if ($permissions->contains('CORP_VIEW')) {
             $menu[] = [
                 'group' => 'Corporativo',
-                'icon' => '🏢',
+                'icon' => 'building',
                 'options' => [
                     ['name' => 'Estructura Corporativa', 'route' => '/corporativo'],
                     ['name' => 'Catálogos RRHH', 'route' => '/catalogo-rrhh']
@@ -145,7 +145,7 @@ class AuthController extends Controller
         if ($permissions->contains('SALARIAL_VIEW')) {
             $menu[] = [
                 'group' => 'Planilla y Nómina',
-                'icon' => '💵',
+                'icon' => 'banknote',
                 'options' => [
                     ['name' => 'Cálculo de Planilla', 'route' => '/planilla'],
                     ['name' => 'Periodos Laborales', 'route' => '/periodos'],
@@ -155,7 +155,7 @@ class AuthController extends Controller
             ];
             $menu[] = [
                 'group' => 'Empleados y Contratos',
-                'icon' => '👥',
+                'icon' => 'users',
                 'options' => [
                     ['name' => 'Empleados', 'route' => '/empleados'],
                     ['name' => 'Tipos de Contratación', 'route' => '/tipo-contratacion'],
@@ -165,7 +165,7 @@ class AuthController extends Controller
         if ($permissions->contains('ASISTENCIA_VIEW') || $permissions->contains('SALARIAL_VIEW')) {
             $menu[] = [
                 'group' => 'Asistencia y Horas Extras',
-                'icon' => '⏰',
+                'icon' => 'clock',
                 'options' => [
                     ['name' => 'Horarios', 'route' => '/horarios'],
                     ['name' => 'Asistencia y Marcaciones', 'route' => '/asistencia'],
@@ -175,7 +175,7 @@ class AuthController extends Controller
         if ($permissions->contains('DEDUCCIONES_VIEW')) {
             $menu[] = [
                 'group' => 'Ingresos, Descuentos y Préstamos',
-                'icon' => '🧮',
+                'icon' => 'calculator',
                 'options' => [
                     ['name' => 'Conceptos por Empleado (comisiones, préstamos, descuentos)', 'route' => '/conceptos-empleado'],
                     ['name' => 'Catálogo Tipos de Ingreso/Descuento', 'route' => '/deducciones'],
@@ -186,7 +186,7 @@ class AuthController extends Controller
         if ($permissions->contains('SEGURIDAD_VIEW')) {
             $menu[] = [
                 'group' => 'Seguridad',
-                'icon' => '🛡️',
+                'icon' => 'shield',
                 'options' => [
                     ['name' => 'Control de Acceso', 'route' => '/seguridad']
                 ]

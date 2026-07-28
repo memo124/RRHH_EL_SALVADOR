@@ -15,7 +15,7 @@
       <SkeletonTable v-if="loading" :cols="5" />
 
       <div v-else class="table-shell">
-        <table class="table-base">
+        <table v-table-cards class="table-cards table-base">
           <thead>
             <tr class="table-head-row">
               <th class="table-head-cell">Periodo</th>
@@ -39,10 +39,19 @@
             </tr>
           </tbody>
         </table>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
-      <div v-if="showModal" class="modal-overlay">
-        <form v-submit-lock="save" class="modal-panel w-full max-w-md modal-body">
+      <AppModalShell :open="showModal" @close="closeModal">
+        <form v-submit-lock="save" class="modal-panel w-full max-w-md mx-auto modal-body">
           <h3 class="modal-title">Nuevo Periodo</h3>
           <input v-model="form.CALPERIODO" placeholder="Nombre (ej. Agosto 2026)" required class="input-base" />
           <div class="grid grid-cols-2 gap-4">
@@ -54,7 +63,7 @@
             <button type="submit" class="btn-primary">Guardar</button>
           </div>
         </form>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
@@ -63,26 +72,29 @@
 import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { field, fieldStr } from '../../utils/fields';
 
-const periodos = ref([]);
+const {
+  items: periodos,
+  loading,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: load,
+  setPage,
+  setPerPage,
+} = usePaginatedList('/periodos-laborales', { perPage: 25 });
 const showModal = ref(false);
-const loading = ref(false);
 const defaultForm = () => ({ CALPERIODO: '', FECHAINICIO: '', FECHAFIN: '' });
 const form = ref(defaultForm());
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('es-SV') : '');
-
-const load = async () => {
-  loading.value = true;
-  try {
-    periodos.value = (await api.get('/periodos-laborales')).data;
-  } finally {
-    loading.value = false;
-  }
-};
 
 onMounted(load);
 

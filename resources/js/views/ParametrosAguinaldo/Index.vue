@@ -18,13 +18,13 @@
         nullable
         placeholder="Todas las empresas"
         wrapper-class="max-w-xs"
-        @change="load"
+        @change="reload"
       />
 
       <SkeletonTable v-if="loading" :cols="4" />
 
       <div v-else class="table-shell">
-        <table class="table-base">
+        <table v-table-cards class="table-cards table-base">
           <thead>
             <tr class="table-head-row">
               <th class="table-head-cell">Empresa</th>
@@ -42,10 +42,19 @@
             </tr>
           </tbody>
         </table>
+        <PaginationBar
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
-      <div v-if="showModal" class="modal-overlay">
-        <form v-submit-lock="save" class="modal-panel w-full max-w-md modal-body">
+      <AppModalShell :open="showModal" @close="closeModal">
+        <form v-submit-lock="save" class="modal-panel w-full max-w-md mx-auto modal-body">
           <h3 class="modal-title">Nuevo parámetro</h3>
           <AsyncSelect
             v-model="form.ID_EMPRESA"
@@ -62,38 +71,44 @@
             <button type="submit" class="btn-primary">Guardar</button>
           </div>
         </form>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { field, fieldStr } from '../../utils/fields';
 
-const items = ref([]);
 const showModal = ref(false);
 const filtroEmpresa = ref(null);
-const loading = ref(false);
+
+const listParams = computed(() => (filtroEmpresa.value ? { ID_EMPRESA: filtroEmpresa.value } : {}));
+
+const {
+  items,
+  loading,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: reload,
+  setPage,
+  setPerPage,
+} = usePaginatedList('/parametros-aguinaldo', { perPage: 25, params: listParams });
 
 const defaultForm = () => ({ ID_EMPRESA: null, DESDE_ANOS: 0, HASTA_ANOS: 0, NUMERO_DIAS: 15 });
 const form = ref(defaultForm());
 
-const load = async () => {
-  loading.value = true;
-  try {
-    const p = filtroEmpresa.value ? { ID_EMPRESA: filtroEmpresa.value } : {};
-    items.value = (await api.get('/parametros-aguinaldo', { params: p })).data;
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(load);
+watch(filtroEmpresa, () => { reload(); });
+onMounted(reload);
 
 const openModal = () => {
   form.value = defaultForm();
@@ -109,7 +124,7 @@ const closeModal = () => {
 const save = async () => {
   await api.post('/parametros-aguinaldo', form.value);
   closeModal();
-  load();
+  reload();
 };
 
 const seedDefault = async () => {
@@ -123,6 +138,6 @@ const seedDefault = async () => {
     return;
   }
   await api.post(`/parametros-aguinaldo/seed/${id}`);
-  load();
+  reload();
 };
 </script>

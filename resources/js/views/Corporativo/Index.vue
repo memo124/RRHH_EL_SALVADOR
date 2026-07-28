@@ -1,9 +1,11 @@
 <template>
   <DashboardLayout>
     <div class="space-y-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Mantenimiento Corporativo</h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400">Estructura organizativa, empresas y unidades de negocio.</p>
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Mantenimiento Corporativo</h1>
+          <p class="page-subtitle">Estructura organizativa, empresas y unidades de negocio.</p>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -17,8 +19,8 @@
 
       <!-- Generic Section -->
       <div class="space-y-4">
-        <div class="flex justify-between items-center">
-          <input v-model="search" type="text" :placeholder="`Buscar ${currentTab?.label?.toLowerCase()}...`"
+        <div class="page-toolbar">
+          <input v-model="searchQuery" type="text" :placeholder="`Buscar ${currentTab?.label?.toLowerCase()}...`"
             class="w-full max-w-xs px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none" />
           <button @click="openCreate" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors">
             + {{ currentTab?.addLabel }}
@@ -28,21 +30,21 @@
         <SkeletonTable v-if="loading" />
 
         <!-- ── EMPRESAS ─────────────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'empresas'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'empresas'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4">NIT</th><th class="px-6 py-4">Teléfono</th><th class="px-6 py-4">Estado</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_EMPRESA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_EMPRESA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_EMPRESA }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBREEMPRESA }}</td>
                 <td class="px-6 py-4">{{ r.NUMERONIT || 'N/A' }}</td>
                 <td class="px-6 py-4">{{ r.TELEFONO || 'N/A' }}</td>
                 <td class="px-6 py-4"><span :class="r.EMPRESAACTIVA ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" class="px-2 py-0.5 rounded text-xs font-semibold">{{ r.EMPRESAACTIVA ? 'Activa' : 'Inactiva' }}</span></td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button v-if="r.EMPRESAACTIVA" @click="inactivate(r, 'empresas', 'ID_EMPRESA')" class="text-rose-600 font-semibold text-xs hover:underline">Inactivar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton v-if="r.EMPRESAACTIVA" variant="inactivate" @click="inactivate(r, 'empresas', 'ID_EMPRESA')" />
                 </td>
               </tr>
             </tbody>
@@ -50,21 +52,21 @@
         </div>
 
         <!-- ── ÁREAS ───────────────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'areas'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'areas'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Área</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4">Prorrateada</th><th class="px-6 py-4">Estado</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_AREA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_AREA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_AREA }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBREAREA }}</td>
-                <td class="px-6 py-4">{{ empresaNombre(r.ID_EMPRESA) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREEMPRESA || empresaNombre(r.ID_EMPRESA) }}</td>
                 <td class="px-6 py-4">{{ r.PRORRATEADA ? 'Sí' : 'No' }}</td>
                 <td class="px-6 py-4"><span :class="r.ACTIVA ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" class="px-2 py-0.5 rounded text-xs font-semibold">{{ r.ACTIVA ? 'Activa' : 'Inactiva' }}</span></td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button v-if="r.ACTIVA" @click="inactivate(r, 'areas', 'ID_AREA')" class="text-rose-600 font-semibold text-xs hover:underline">Inactivar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton v-if="r.ACTIVA" variant="inactivate" @click="inactivate(r, 'areas', 'ID_AREA')" />
                 </td>
               </tr>
             </tbody>
@@ -72,21 +74,21 @@
         </div>
 
         <!-- ── CENTROS COSTO ───────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'centros-costo'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'centros-costo'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Código</th><th class="px-6 py-4">Nombre</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4">Estado</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_CENTROCOSTO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_CENTROCOSTO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_CENTROCOSTO }}</td>
                 <td class="px-6 py-4"><span class="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{{ r.CODIGO_CENTROCOSTO }}</span></td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBRE_CENTROCOSTO }}</td>
-                <td class="px-6 py-4">{{ empresaNombre(r.ID_EMPRESA) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREEMPRESA || empresaNombre(r.ID_EMPRESA) }}</td>
                 <td class="px-6 py-4"><span :class="r.ESACTIVO ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" class="px-2 py-0.5 rounded text-xs font-semibold">{{ r.ESACTIVO ? 'Activo' : 'Inactivo' }}</span></td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button v-if="r.ESACTIVO" @click="inactivate(r, 'centros-costo', 'ID_CENTROCOSTO')" class="text-rose-600 font-semibold text-xs hover:underline">Inactivar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton v-if="r.ESACTIVO" variant="inactivate" @click="inactivate(r, 'centros-costo', 'ID_CENTROCOSTO')" />
                 </td>
               </tr>
             </tbody>
@@ -94,20 +96,20 @@
         </div>
 
         <!-- ── DEPARTAMENTOS ───────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'departamentos'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'departamentos'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Departamento</th><th class="px-6 py-4">Área</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_DEPARTAMENTO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_DEPARTAMENTO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_DEPARTAMENTO }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBREDEPARTAMENTO }}</td>
-                <td class="px-6 py-4">{{ areaNombre(r.ID_AREA) }}</td>
-                <td class="px-6 py-4">{{ empresaNombre(r.ID_EMPRESA) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREAREA || areaNombre(r.ID_AREA) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREEMPRESA || empresaNombre(r.ID_EMPRESA) }}</td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button @click="deleteRecord(r, 'departamentos', 'ID_DEPARTAMENTO')" class="text-rose-600 font-semibold text-xs hover:underline">Eliminar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton variant="delete" @click="deleteRecord(r, 'departamentos', 'ID_DEPARTAMENTO')" />
                 </td>
               </tr>
             </tbody>
@@ -115,21 +117,21 @@
         </div>
 
         <!-- ── CARGOS ──────────────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'cargos'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'cargos'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Cargo</th><th class="px-6 py-4">Departamento</th><th class="px-6 py-4">Nivel</th><th class="px-6 py-4">Estado</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_CARGO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_CARGO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_CARGO }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBRECARGO }}</td>
-                <td class="px-6 py-4">{{ deptoNombre(r.ID_DEPARTAMENTO) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREDEPARTAMENTO || deptoNombre(r.ID_DEPARTAMENTO) }}</td>
                 <td class="px-6 py-4">{{ r.NIVEL_JERARQUICO }}</td>
                 <td class="px-6 py-4"><span :class="r.CARGOESTADO ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" class="px-2 py-0.5 rounded text-xs font-semibold">{{ r.CARGOESTADO ? 'Activo' : 'Inactivo' }}</span></td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button v-if="r.CARGOESTADO" @click="inactivate(r, 'cargos', 'ID_CARGO')" class="text-rose-600 font-semibold text-xs hover:underline">Inactivar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton v-if="r.CARGOESTADO" variant="inactivate" @click="inactivate(r, 'cargos', 'ID_CARGO')" />
                 </td>
               </tr>
             </tbody>
@@ -137,21 +139,21 @@
         </div>
 
         <!-- ── SUCURSALES ──────────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'sucursales'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'sucursales'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Sucursal</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4">Dirección</th><th class="px-6 py-4">Estado</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_SUCURSAL" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_SUCURSAL" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_SUCURSAL }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBRESUCURSAL }}</td>
-                <td class="px-6 py-4">{{ empresaNombre(r.ID_EMPRESA) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREEMPRESA || empresaNombre(r.ID_EMPRESA) }}</td>
                 <td class="px-6 py-4">{{ r.DIRECCION || '—' }}</td>
                 <td class="px-6 py-4"><span :class="r.ESACTIVA ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" class="px-2 py-0.5 rounded text-xs font-semibold">{{ r.ESACTIVA ? 'Activa' : 'Inactiva' }}</span></td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button v-if="r.ESACTIVA" @click="inactivate(r, 'sucursales', 'ID_SUCURSAL')" class="text-rose-600 font-semibold text-xs hover:underline">Inactivar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton v-if="r.ESACTIVA" variant="inactivate" @click="inactivate(r, 'sucursales', 'ID_SUCURSAL')" />
                 </td>
               </tr>
             </tbody>
@@ -159,19 +161,19 @@
         </div>
 
         <!-- ── BODEGAS ─────────────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'bodegas'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'bodegas'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Bodega</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_BODEGA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_BODEGA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_BODEGA }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBREBODEGA }}</td>
-                <td class="px-6 py-4">{{ empresaNombre(r.ID_EMPRESA) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREEMPRESA || empresaNombre(r.ID_EMPRESA) }}</td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button @click="deleteRecord(r, 'bodegas', 'ID_BODEGA')" class="text-rose-600 font-semibold text-xs hover:underline">Eliminar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton variant="delete" @click="deleteRecord(r, 'bodegas', 'ID_BODEGA')" />
                 </td>
               </tr>
             </tbody>
@@ -179,33 +181,44 @@
         </div>
 
         <!-- ── RUTAS ───────────────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'rutas'" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div v-else-if="activeTab === 'rutas'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
             <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
               <th class="px-6 py-4">ID</th><th class="px-6 py-4">Ruta</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4">Estado</th><th class="px-6 py-4 text-right">Acciones</th>
             </tr></thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="r in filtered" :key="r.ID_RUTA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <tr v-for="r in records" :key="r.ID_RUTA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <td class="px-6 py-4 text-slate-500">{{ r.ID_RUTA }}</td>
                 <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBRERUTA }}</td>
-                <td class="px-6 py-4">{{ empresaNombre(r.ID_EMPRESA) }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREEMPRESA || empresaNombre(r.ID_EMPRESA) }}</td>
                 <td class="px-6 py-4"><span :class="r.ESACTIVA ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" class="px-2 py-0.5 rounded text-xs font-semibold">{{ r.ESACTIVA ? 'Activa' : 'Inactiva' }}</span></td>
                 <td class="px-6 py-4 text-right space-x-2">
-                  <button @click="openEdit(r)" class="text-indigo-600 font-semibold text-xs hover:underline">Editar</button>
-                  <button v-if="r.ESACTIVA" @click="inactivate(r, 'rutas', 'ID_RUTA')" class="text-rose-600 font-semibold text-xs hover:underline">Inactivar</button>
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton v-if="r.ESACTIVA" variant="inactivate" @click="inactivate(r, 'rutas', 'ID_RUTA')" />
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <PaginationBar
+          v-if="!loading"
+          :page="page"
+          :last-page="lastPage"
+          :per-page="perPage"
+          :total="total"
+          :loading="loading"
+          @update:page="setPage"
+          @update:per-page="setPerPage"
+        />
       </div>
 
       <!-- ══ DYNAMIC MODAL ════════════════════════════════════════════════════ -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <AppModalShell :open="showModal" @close="showModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
           <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
             <h3 class="text-base font-bold text-slate-950 dark:text-white">{{ isEditing ? 'Editar' : 'Nuevo' }} {{ currentTab?.label }}</h3>
-            <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
           <form v-submit-lock="save" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
 
@@ -371,7 +384,7 @@
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
@@ -380,6 +393,9 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
+import PaginationBar from '../../components/PaginationBar.vue';
+import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 
@@ -409,8 +425,23 @@ const tabs = [
 
 const activeTab = ref('empresas');
 const currentTab = computed(() => tabs.find(t => t.key === activeTab.value));
-const loading = ref(false);
-const search  = ref('');
+const endpoint = computed(() => `/${currentTab.value?.api}`);
+
+const {
+  items: records,
+  loading,
+  search: searchQuery,
+  page,
+  perPage,
+  total,
+  lastPage,
+  fetch: loadTab,
+  setPage,
+  setSearch,
+  setPerPage,
+  reset,
+} = usePaginatedList(endpoint, { perPage: 25 });
+
 const showModal  = ref(false);
 const logoFile   = ref(null);
 const logoPreview = ref('');
@@ -418,56 +449,36 @@ const isEditing  = ref(false);
 const modalError = ref('');
 const form = ref({});
 
-const data = ref({
-  empresas: [], areas: [], 'centros-costo': [], departamentos: [],
-  cargos: [], sucursales: [], bodegas: [], rutas: []
-});
-
 const catalogos = ref({ empresas: [], areas: [], centrosCosto: [], departamentos: [], cargos: [] });
 
 const areaParams = computed(() => (form.value.ID_EMPRESA ? { ID_EMPRESA: form.value.ID_EMPRESA } : {}));
 const centroCostoParams = computed(() => (form.value.ID_EMPRESA ? { ID_EMPRESA: form.value.ID_EMPRESA } : {}));
 
-const filtered = computed(() => {
-  const key = currentTab.value?.search;
-  const list = data.value[activeTab.value] || [];
-  if (!search.value || !key) return list;
-  return list.filter(r => (r[key] || '').toLowerCase().includes(search.value.toLowerCase()));
-});
-
-// Lookup helpers
+// Lookup helpers (form dropdowns)
 const empresaNombre = (id) => catalogos.value.empresas.find(e => e.ID_EMPRESA === id)?.NOMBREEMPRESA || id;
 const areaNombre    = (id) => catalogos.value.areas.find(a => a.ID_AREA === id)?.NOMBREAREA || id;
 const deptoNombre   = (id) => catalogos.value.departamentos.find(d => d.ID_DEPARTAMENTO === id)?.NOMBREDEPARTAMENTO || id;
 
-const loadAll = async () => {
-  loading.value = true;
+const loadCatalogos = async () => {
   try {
-    const [emp, area, cc, dep, car, suc, bod, rut] = await Promise.all([
-      api.get('/empresas'), api.get('/areas'), api.get('/centros-costo'),
-      api.get('/departamentos'), api.get('/cargos'), api.get('/sucursales'),
-      api.get('/bodegas'), api.get('/rutas'),
+    const [emp, area, cc, dep, car] = await Promise.all([
+      api.get('/catalogs/empresas/select', { params: { per_page: 200 } }),
+      api.get('/catalogs/areas/select', { params: { per_page: 200 } }),
+      api.get('/catalogs/centros-costo/select', { params: { per_page: 200 } }),
+      api.get('/catalogs/departamentos/select', { params: { per_page: 200 } }),
+      api.get('/catalogs/cargos/select', { params: { per_page: 200 } }),
     ]);
-    data.value['empresas']      = emp.data;
-    data.value['areas']         = area.data;
-    data.value['centros-costo'] = cc.data;
-    data.value['departamentos'] = dep.data;
-    data.value['cargos']        = car.data;
-    data.value['sucursales']    = suc.data;
-    data.value['bodegas']       = bod.data;
-    data.value['rutas']         = rut.data;
-
-    catalogos.value.empresas     = emp.data;
-    catalogos.value.areas        = area.data;
-    catalogos.value.centrosCosto = cc.data;
-    catalogos.value.departamentos= dep.data;
-    catalogos.value.cargos       = car.data;
+    catalogos.value.empresas      = emp.data;
+    catalogos.value.areas         = area.data;
+    catalogos.value.centrosCosto  = cc.data;
+    catalogos.value.departamentos = dep.data;
+    catalogos.value.cargos        = car.data;
   } catch (err) { console.error(err); }
-  finally { loading.value = false; }
 };
 
-onMounted(loadAll);
-watch(activeTab, () => { search.value = ''; });
+watch(searchQuery, (q) => setSearch(q));
+watch(activeTab, () => { reset(); loadTab(); });
+onMounted(() => { loadCatalogos(); loadTab(); });
 watch(() => form.value.ID_EMPRESA, (next, prev) => {
   if (prev != null && next !== prev && activeTab.value === 'departamentos') {
     form.value.ID_AREA = null;
@@ -543,7 +554,7 @@ const save = async () => {
     showModal.value = false;
     logoFile.value = null;
     logoPreview.value = '';
-    loadAll();
+    loadTab();
   } catch (err) {
     modalError.value = err.response?.data?.errors
       ? Object.values(err.response.data.errors).flat().join(' ')
@@ -559,7 +570,7 @@ const inactivate = async (r, endpoint, idKey) => {
     confirmText: 'Sí, inactivar',
   })) return;
   await api.delete(`/${endpoint}/${r[idKey]}`);
-  loadAll();
+  loadTab();
 };
 
 const deleteRecord = async (r, endpoint, idKey) => {
@@ -570,6 +581,6 @@ const deleteRecord = async (r, endpoint, idKey) => {
     confirmText: 'Sí, eliminar',
   })) return;
   await api.delete(`/${endpoint}/${r[idKey]}`);
-  loadAll();
+  loadTab();
 };
 </script>

@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class GeografiaController extends Controller
 {
-    public function index()
+    use PaginatesQueries;
+
+    public function index(Request $request)
     {
-        $paises = DB::table('PAIS')->orderBy('ID_PAIS')->get();
-        return response()->json($paises);
+        $query = DB::table('PAIS')->orderBy('ID_PAIS');
+
+        return $this->paginateQuery($query, $request, ['NOMBREPAIS', 'CODIGO_MH']);
     }
 
     public function store(Request $request)
