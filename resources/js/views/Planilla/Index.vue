@@ -326,6 +326,7 @@ import PaginationBar from '../../components/PaginationBar.vue';
 import AsyncSelect from '../../components/AsyncSelect.vue';
 import { FORMA_PAGO_OPTIONS } from '../../utils/staticSelectOptions';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { usePlanillaReports } from '../../composables/usePlanillaReports';
 import { buildPlanillaSheetRows, downloadXlsx } from '../../utils/exportXlsx';
 import {
@@ -516,7 +517,11 @@ const fetchAllDetallesForExport = async () => {
 
 const toggleHePanel = async () => {
   if (!showHePanel.value && !hasDetalles.value) {
-    alert('Calcule la planilla primero para ver los empleados de esta corrida.');
+    await dialog.alert({
+      title: 'Planilla sin calcular',
+      message: 'Calcule la planilla primero para ver los empleados de esta corrida.',
+      variant: 'info',
+    });
     return;
   }
   showHePanel.value = !showHePanel.value;
@@ -550,11 +555,11 @@ const calculatePayroll = async (plan) => {
     await loadPlanillas();
     await viewDetails(plan);
     if (res.data?.message) {
-      alert(res.data.message);
+      await dialog.alert({ title: 'Cálculo completado', message: res.data.message, variant: 'success' });
     }
   } catch (err) {
     const msg = err.response?.data?.error || err.message || 'Error al calcular planilla.';
-    alert(msg);
+    await dialog.alert({ title: 'Error al calcular', message: msg, variant: 'danger' });
     console.error(err);
   } finally {
     calculating.value = false;
@@ -578,7 +583,7 @@ const addHe = async () => {
     await loadHorasExtras(selectedPayroll.value.ID_PLANILLA);
     heForm.value.CANTIDADHORAS = null;
   } catch (err) {
-    alert('Error al agregar hora extra.');
+    await dialog.alert({ title: 'Error', message: 'No se pudo agregar la hora extra.', variant: 'danger' });
     console.error(err);
   }
 };
@@ -590,13 +595,39 @@ const syncHe = async () => {
   try {
     await api.post(`/planillas/${selectedPayroll.value.ID_PLANILLA}/horas-extras/sync`);
     await loadHorasExtras(selectedPayroll.value.ID_PLANILLA);
-    alert('Horas extras sincronizadas desde asistencia.');
+    await dialog.alert({
+      title: 'Sincronización completada',
+      message: 'Horas extras sincronizadas desde asistencia.',
+      variant: 'success',
+    });
   } catch (err) {
-    alert(err.response?.data?.error || 'Error al sincronizar horas extras.');
+    await dialog.alert({
+      title: 'Error al sincronizar',
+      message: err.response?.data?.error || 'Error al sincronizar horas extras.',
+      variant: 'danger',
+    });
   }
 };
-const cerrarPlanilla = async (plan) => { if (!confirm('¿Cerrar planilla? No podrá recalcularla.')) return; await api.post(`/planillas/${plan.ID_PLANILLA}/cerrar`); loadPlanillas(); };
-const anularPlanilla = async (plan) => { if (!confirm('¿Anular planilla? Se revertirán abonos de préstamos.')) return; await api.post(`/planillas/${plan.ID_PLANILLA}/anular`); loadPlanillas(); };
+const cerrarPlanilla = async (plan) => {
+  if (!await dialog.confirm({
+    title: 'Cerrar planilla',
+    message: '¿Cerrar planilla? No podrá recalcularla.',
+    variant: 'warning',
+    confirmText: 'Sí, cerrar',
+  })) return;
+  await api.post(`/planillas/${plan.ID_PLANILLA}/cerrar`);
+  loadPlanillas();
+};
+const anularPlanilla = async (plan) => {
+  if (!await dialog.confirm({
+    title: 'Anular planilla',
+    message: '¿Anular planilla? Se revertirán abonos de préstamos.',
+    variant: 'danger',
+    confirmText: 'Sí, anular',
+  })) return;
+  await api.post(`/planillas/${plan.ID_PLANILLA}/anular`);
+  loadPlanillas();
+};
 const contabilizarPlanilla = async (plan) => { await api.post(`/planillas/${plan.ID_PLANILLA}/contabilizar`); loadPlanillas(); };
 
 const viewDetails = async (plan) => {
@@ -621,7 +652,7 @@ const viewDetails = async (plan) => {
     setTimeout(() => document.getElementById('detail-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   } catch (err) {
     console.error('Error cargando detalles:', err);
-    alert('Error al cargar detalles de planilla.');
+    await dialog.alert({ title: 'Error', message: 'No se pudieron cargar los detalles de la planilla.', variant: 'danger' });
   } finally {
     loadingDetails.value = false;
   }

@@ -144,6 +144,7 @@ import { ref, computed, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 
 const docs = ref([]);
 const loading = ref(false);
@@ -214,13 +215,21 @@ const saveForm = async () => {
 };
 
 const inactivateDoc = async (doc) => {
-  if (confirm(`¿Inactivar ${doc.NOMBREDOCUMENTO}?`)) {
-    try {
-      await api.delete(`/tipo-documento/${doc.ID_TIPODOCUMENTO}`);
-      loadDocs();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Error.');
-    }
+  if (!await dialog.confirm({
+    title: 'Inactivar documento',
+    message: `¿Inactivar ${doc.NOMBREDOCUMENTO}?`,
+    variant: 'warning',
+    confirmText: 'Sí, inactivar',
+  })) return;
+  try {
+    await api.delete(`/tipo-documento/${doc.ID_TIPODOCUMENTO}`);
+    loadDocs();
+  } catch (err) {
+    await dialog.alert({
+      title: 'Error',
+      message: err.response?.data?.error || 'No se pudo inactivar el documento.',
+      variant: 'danger',
+    });
   }
 };
 </script>

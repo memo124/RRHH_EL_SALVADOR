@@ -313,6 +313,10 @@ import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog, dialogEmpleadoLabel } from '../../composables/useDialog';
+import { useToast } from '../../composables/useToast';
+
+const toast = useToast();
 
 const items = ref([]);
 const subsidios = ref([]);
@@ -400,9 +404,32 @@ const save = async () => {
 };
 
 const cancelar = async (i) => {
-  if (!confirm(`¿Cancelar la incapacidad de ${i.NOMBRE_EMPLEADO}?`)) return;
-  await api.post(`/incapacidades/${i.ID_INCAPACIDAD}/cancelar`);
-  load();
+  const nombre = dialogEmpleadoLabel(i);
+  const values = await dialog.form({
+    title: 'Cancelar incapacidad',
+    message: `¿Confirma cancelar el certificado médico de ${nombre}?`,
+    variant: 'danger',
+    confirmText: 'Sí, cancelar',
+    cancelText: 'No',
+    fields: [
+      {
+        name: 'motivo',
+        type: 'textarea',
+        label: 'Motivo de cancelación',
+        required: true,
+        rows: 3,
+        placeholder: 'Ej: certificado duplicado, error de fechas, empleado reintegrado…',
+      },
+    ],
+  });
+  if (!values) return;
+  try {
+    await api.post(`/incapacidades/${i.ID_INCAPACIDAD}/cancelar`, { motivo: values.motivo });
+    toast.success('Incapacidad cancelada');
+    load();
+  } catch {
+    toast.error('Error', 'No se pudo cancelar la incapacidad.');
+  }
 };
 
 const openCobroModal = (s) => {

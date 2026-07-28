@@ -34,8 +34,8 @@
 | Carpeta | Rol |
 |---------|-----|
 | `resources/js/views` | Pantallas por módulo |
-| `resources/js/components` | `AsyncSelect`, `PaginationBar`, modales |
-| `resources/js/composables` | Estado reutilizable (paginación, toasts, reportes) |
+| `resources/js/components` | `AsyncSelect`, `PaginationBar`, `AppDialog`, `AppModalShell`, `AppToast` |
+| `resources/js/composables` | Paginación, toasts, diálogos (`useDialog`), reportes planilla |
 | `resources/js/services/api.js` | Cliente Axios + token Sanctum |
 
 ## Autenticación
@@ -54,6 +54,26 @@
 | `GET /api/catalogs/{tipo}/select` | Catálogos (empresas, cargos, etc.) |
 
 Tipos de catálogo: `empresas`, `departamentos`, `cargos`, `tipos-planilla`, `periodos-laborales`, `cuentas`, `afps`, `bancos`, `municipios`, `distritos`, `tipos-prestamo`, `tipos-descuento`, `tipos-ingreso`, entre otros.
+
+## APIs de conceptos por empleado
+
+| Endpoint | Uso |
+|----------|-----|
+| `GET /api/prestamos/{id}` | Préstamo + abonos + resumen |
+| `DELETE /api/prestamos/{id}/abonos/{abonoId}` | Eliminar cuota y recalcular saldo |
+| `GET /api/descuentos-empleado/{id}/historial` | Aplicaciones en planilla |
+| `GET /api/otros-ingresos/{id}/historial` | Ingresos aplicados en planilla |
+| `POST /api/incapacidades/{id}/cancelar` | Cancelar certificado (body: `{ motivo? }`) |
+
+Detalle: [API-CONCEPTOS-EMPLEADO.md](API-CONCEPTOS-EMPLEADO.md)
+
+## UX frontend
+
+- **AppDialog** + **useDialog**: reemplazo de `alert`/`confirm`/`prompt` nativos
+- **AppModalShell**: modales CRUD con overlay a pantalla completa
+- **useToast**: feedback no bloqueante
+
+Detalle: [FRONTEND-UX.md](FRONTEND-UX.md)
 
 ## Reportes
 

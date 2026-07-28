@@ -78,6 +78,65 @@ class OtroIngresoController extends Controller
         return response()->json(['message' => 'Ingreso adicional actualizado.']);
     }
 
+    public function historial($id)
+    {
+        $ingreso = DB::table('OTRO_INGRESO')
+            ->join('TIPO_INGRESO', 'OTRO_INGRESO.ID_TIPOINGRESO', '=', 'TIPO_INGRESO.ID_TIPOINGRESO')
+            ->where('OTRO_INGRESO.ID_OTROINGRESO', $id)
+            ->select('OTRO_INGRESO.*', 'TIPO_INGRESO.TIPOINGRESO')
+            ->first();
+
+        if (!$ingreso) {
+            return response()->json(['error' => 'Ingreso no encontrado.'], 404);
+        }
+
+        $query = DB::table('DETALLE_PLANILLA')
+            ->join('PLANILLA', 'DETALLE_PLANILLA.ID_PLANILLA', '=', 'PLANILLA.ID_PLANILLA')
+            ->where('DETALLE_PLANILLA.ID_EMPLEADO', $ingreso->ID_EMPLEADO)
+            ->where('PLANILLA.FECHAPAGO', '>=', $ingreso->FECHAINICIO)
+            ->where(function ($q) {
+                $q->where('DETALLE_PLANILLA.PRODUCTIVIDAD', '>', 0)
+                    ->orWhere('DETALLE_PLANILLA.COMISION', '>', 0)
+                    ->orWhere('DETALLE_PLANILLA.OTROS_INGRESOS', '>', 0);
+            })
+            ->orderBy('PLANILLA.FECHAPAGO', 'desc')
+            ->select(
+                'PLANILLA.ID_PLANILLA',
+                'PLANILLA.TITULO',
+                'PLANILLA.FECHAPAGO',
+                'DETALLE_PLANILLA.PRODUCTIVIDAD',
+                'DETALLE_PLANILLA.COMISION',
+                'DETALLE_PLANILLA.OTROS_INGRESOS'
+            );
+
+        if ($ingreso->FECHAFIN) {
+            $query->where('PLANILLA.FECHAPAGO', '<=', $ingreso->FECHAFIN);
+        }
+
+        $aplicaciones = $query->get()->map(function ($row) use ($ingreso) {
+            $monto = (float) ($row->PRODUCTIVIDAD ?? 0)
+                + (float) ($row->COMISION ?? 0)
+                + (float) ($row->OTROS_INGRESOS ?? 0);
+
+            return [
+                'ID_PLANILLA' => $row->ID_PLANILLA,
+                'TITULO' => $row->TITULO,
+                'FECHAPAGO' => $row->FECHAPAGO,
+                'MONTO' => round($monto, 2),
+                'MONTO_CONFIGURADO' => round((float) $ingreso->MONTOINGRESO, 2),
+            ];
+        });
+
+        return response()->json([
+            'ingreso' => $ingreso,
+            'aplicaciones' => $aplicaciones,
+            'resumen' => [
+                'total_aplicado' => round((float) $aplicaciones->sum('MONTO'), 2),
+                'veces_aplicado' => $aplicaciones->count(),
+            ],
+        ]);
+    }
+
     public function destroy($id)
     {
         DB::table('OTRO_INGRESO')->where('ID_OTROINGRESO', $id)->update(['ESACTIVO' => false]);

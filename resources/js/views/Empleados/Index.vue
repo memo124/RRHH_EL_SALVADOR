@@ -102,13 +102,14 @@
       </div>
 
       <!-- Modal CRUD -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-4xl w-full overflow-hidden border border-slate-200 dark:border-slate-700 my-8">
-          <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-            <h3 class="text-base font-bold text-slate-955 dark:text-white">{{ isEditing ? 'Editar Expediente de Empleado' : 'Registrar Nuevo Empleado' }}</h3>
+      <AppModalShell :open="showModal" @close="closeModal">
+        <div class="modal-panel modal-panel-lg w-full max-w-4xl mx-auto">
+          <div class="modal-header">
+            <h3 class="modal-title">{{ isEditing ? 'Editar Expediente de Empleado' : 'Registrar Nuevo Empleado' }}</h3>
             <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold">✕</button>
           </div>
-          <form v-submit-lock="saveForm" class="p-6 space-y-6">
+          <form v-submit-lock="saveForm" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div class="modal-body space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <!-- Datos Personales -->
               <div class="md:col-span-3 border-b pb-2">
@@ -252,15 +253,15 @@
               </div>
             </div>
 
-            <div v-if="modalError" class="text-xs text-red-500 font-semibold">{{ modalError }}</div>
-
-            <div class="flex justify-end space-x-3 pt-4 border-t dark:border-slate-700">
-              <button data-no-lock type="button" @click="closeModal" class="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
-              <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors">Guardar</button>
+            <div v-if="modalError" class="text-xs text-red-500 dark:text-red-400 font-semibold">{{ modalError }}</div>
+            </div>
+            <div class="modal-footer">
+              <button data-no-lock type="button" @click="closeModal" class="btn-secondary">Cancelar</button>
+              <button type="submit" class="btn-primary">Guardar</button>
             </div>
           </form>
         </div>
-      </div>
+      </AppModalShell>
     </div>
   </DashboardLayout>
 </template>
@@ -271,9 +272,14 @@ import { useVirtualizer } from '@tanstack/vue-virtual';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import PaginationBar from '../../components/PaginationBar.vue';
+import AppModalShell from '../../components/AppModalShell.vue';
 import { usePaginatedList } from '../../composables/usePaginatedList';
 import { GENERO_OPTIONS, ACTIVO_BOOL_OPTIONS } from '../../utils/staticSelectOptions';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
+import { useToast } from '../../composables/useToast';
+
+const toast = useToast();
 
 const {
   items: empleados,
@@ -501,13 +507,17 @@ const saveForm = async () => {
 };
 
 const inactivateEmpleado = async (emp) => {
-  if (confirm(`¿Está seguro de inactivar a ${emp.NOMBRES}?`)) {
-    try {
-      await api.delete(`/empleados/${emp.ID_EMPLEADO}`);
-      loadEmpleados();
-    } catch (err) {
-      alert('Error al inactivar empleado.');
-    }
+  if (!await dialog.confirm({
+    title: 'Inactivar empleado',
+    message: `¿Está seguro de inactivar a ${emp.NOMBRES}?`,
+    variant: 'danger',
+    confirmText: 'Sí, inactivar',
+  })) return;
+  try {
+    await api.delete(`/empleados/${emp.ID_EMPLEADO}`);
+    loadEmpleados();
+  } catch {
+    toast.error('Error', 'No se pudo inactivar el empleado.');
   }
 };
 

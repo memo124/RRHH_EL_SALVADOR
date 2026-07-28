@@ -72,6 +72,7 @@ import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { field, fieldStr } from '../../utils/fields';
 
 const items = ref([]);
@@ -114,7 +115,11 @@ const save = async () => {
 const seedDefault = async () => {
   const id = filtroEmpresa.value;
   if (!id) {
-    alert('Seleccione una empresa para cargar la tabla legal.');
+    await dialog.alert({
+      title: 'Empresa requerida',
+      message: 'Seleccione una empresa para cargar la tabla legal.',
+      variant: 'warning',
+    });
     return;
   }
   await api.post(`/parametros-aguinaldo/seed/${id}`);

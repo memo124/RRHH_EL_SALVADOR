@@ -381,6 +381,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 
 // Inline reusable field
 const FormField = {
@@ -551,16 +552,24 @@ const save = async () => {
 };
 
 const inactivate = async (r, endpoint, idKey) => {
-  if (confirm('¿Confirmar inactivación?')) {
-    await api.delete(`/${endpoint}/${r[idKey]}`);
-    loadAll();
-  }
+  if (!await dialog.confirm({
+    title: 'Confirmar inactivación',
+    message: '¿Confirma inactivar este registro?',
+    variant: 'warning',
+    confirmText: 'Sí, inactivar',
+  })) return;
+  await api.delete(`/${endpoint}/${r[idKey]}`);
+  loadAll();
 };
 
 const deleteRecord = async (r, endpoint, idKey) => {
-  if (confirm('¿Confirmar eliminación?')) {
-    await api.delete(`/${endpoint}/${r[idKey]}`);
-    loadAll();
-  }
+  if (!await dialog.confirm({
+    title: 'Confirmar eliminación',
+    message: '¿Confirma eliminar este registro? Esta acción no se puede deshacer.',
+    variant: 'danger',
+    confirmText: 'Sí, eliminar',
+  })) return;
+  await api.delete(`/${endpoint}/${r[idKey]}`);
+  loadAll();
 };
 </script>

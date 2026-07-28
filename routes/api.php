@@ -104,14 +104,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Conceptos por Empleado (Préstamos, Descuentos, Ingresos) ──────────────
     Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/conceptos-empleado/catalogs', [App\Http\Controllers\ConceptosEmpleadoController::class, 'catalogs']);
     Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/prestamos',                   [App\Http\Controllers\PrestamosController::class, 'index']);
+    Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/prestamos/{id}',              [App\Http\Controllers\PrestamosController::class, 'show']);
     Route::middleware('permission:DEDUCCIONES_CREATE')->post  ('/prestamos',                   [App\Http\Controllers\PrestamosController::class, 'store']);
     Route::middleware('permission:DEDUCCIONES_UPDATE')->put   ('/prestamos/{id}',              [App\Http\Controllers\PrestamosController::class, 'update']);
+    Route::middleware('permission:DEDUCCIONES_UPDATE')->delete('/prestamos/{id}/abonos/{abonoId}', [App\Http\Controllers\PrestamosController::class, 'destroyAbono']);
     Route::middleware('permission:DEDUCCIONES_DELETE')->delete('/prestamos/{id}',              [App\Http\Controllers\PrestamosController::class, 'destroy']);
     Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/descuentos-empleado',         [App\Http\Controllers\DescuentoEmpleadoController::class, 'index']);
+    Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/descuentos-empleado/{id}/historial', [App\Http\Controllers\DescuentoEmpleadoController::class, 'historial']);
     Route::middleware('permission:DEDUCCIONES_CREATE')->post  ('/descuentos-empleado',         [App\Http\Controllers\DescuentoEmpleadoController::class, 'store']);
     Route::middleware('permission:DEDUCCIONES_UPDATE')->put   ('/descuentos-empleado/{id}',    [App\Http\Controllers\DescuentoEmpleadoController::class, 'update']);
     Route::middleware('permission:DEDUCCIONES_DELETE')->delete('/descuentos-empleado/{id}',    [App\Http\Controllers\DescuentoEmpleadoController::class, 'destroy']);
     Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/otros-ingresos',              [App\Http\Controllers\OtroIngresoController::class, 'index']);
+    Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/otros-ingresos/{id}/historial', [App\Http\Controllers\OtroIngresoController::class, 'historial']);
     Route::middleware('permission:DEDUCCIONES_CREATE')->post  ('/otros-ingresos',              [App\Http\Controllers\OtroIngresoController::class, 'store']);
     Route::middleware('permission:DEDUCCIONES_UPDATE')->put   ('/otros-ingresos/{id}',         [App\Http\Controllers\OtroIngresoController::class, 'update']);
     Route::middleware('permission:DEDUCCIONES_DELETE')->delete('/otros-ingresos/{id}',          [App\Http\Controllers\OtroIngresoController::class, 'destroy']);

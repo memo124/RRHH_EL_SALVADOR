@@ -126,6 +126,7 @@ import { ref, computed, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 
 const paises = ref([]);
 const loading = ref(false);
@@ -194,13 +195,21 @@ const saveForm = async () => {
 };
 
 const deletePais = async (pais) => {
-  if (confirm(`¿Eliminar ${pais.NOMBREPAIS}?`)) {
-    try {
-      await api.delete(`/paises/${pais.ID_PAIS}`);
-      loadPaises();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Error.');
-    }
+  if (!await dialog.confirm({
+    title: 'Eliminar país',
+    message: `¿Eliminar ${pais.NOMBREPAIS}?`,
+    variant: 'danger',
+    confirmText: 'Sí, eliminar',
+  })) return;
+  try {
+    await api.delete(`/paises/${pais.ID_PAIS}`);
+    loadPaises();
+  } catch (err) {
+    await dialog.alert({
+      title: 'Error',
+      message: err.response?.data?.error || 'No se pudo eliminar el país.',
+      variant: 'danger',
+    });
   }
 };
 </script>

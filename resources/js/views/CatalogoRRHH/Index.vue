@@ -203,6 +203,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { MODALIDAD_HE_OPTIONS, JORNADA_HE_OPTIONS } from '../../utils/staticSelectOptions';
 
 // Inline form helpers
@@ -338,7 +339,12 @@ const save = async () => {
 const deleteOrInactivate = async (r) => {
   const tab = currentTab.value;
   const label = tab.deletable ? 'eliminar' : 'inactivar';
-  if (!confirm(`¿Confirmar ${label}?`)) return;
+  if (!await dialog.confirm({
+    title: `Confirmar ${label}`,
+    message: `¿Confirma ${label} este registro?`,
+    variant: tab.deletable ? 'danger' : 'warning',
+    confirmText: `Sí, ${label}`,
+  })) return;
   await api.delete(`/${tab.api}/${r[tab.idKey]}`);
   loadTab();
 };

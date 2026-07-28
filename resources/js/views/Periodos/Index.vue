@@ -64,6 +64,7 @@ import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { field, fieldStr } from '../../utils/fields';
 
 const periodos = ref([]);
@@ -102,7 +103,15 @@ const save = async () => {
 };
 
 const generarAnio = async () => {
-  const anio = prompt('Año a generar:', new Date().getFullYear());
+  const anio = await dialog.prompt({
+    title: 'Generar períodos',
+    message: 'Ingrese el año para generar los períodos laborales:',
+    inputLabel: 'Año',
+    inputType: 'number',
+    inputDefault: String(new Date().getFullYear()),
+    inputRequired: true,
+    confirmText: 'Generar',
+  });
   if (anio) {
     await api.post('/periodos-laborales/generar', { anio });
     load();

@@ -34,6 +34,143 @@ class PrestamosController extends Controller
         return response()->json($query->get());
     }
 
+    public function show($id)
+    {
+        $prestamo = DB::table('PRESTAMOS')
+            ->join('EMPLEADO', 'PRESTAMOS.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
+            ->join('TIPO_PRESTAMO', 'PRESTAMOS.ID_TIPOPRESTAMO', '=', 'TIPO_PRESTAMO.ID_TIPOPRESTAMO')
+            ->join('TIPO_DESCUENTO', 'PRESTAMOS.ID_TIPODESCUENTO', '=', 'TIPO_DESCUENTO.ID_TIPODESCUENTO')
+            ->where('PRESTAMOS.ID_PRESTAMO', $id)
+            ->select(
+                'PRESTAMOS.*',
+                'EMPLEADO.CODIGOEMPLEADO',
+                DB::raw('"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1" AS NOMBRE_EMPLEADO'),
+                'TIPO_PRESTAMO.NOMBREPRESTAMO',
+                'TIPO_DESCUENTO.NOMBRETIPODESC'
+            )
+            ->first();
+
+        if (!$prestamo) {
+            return response()->json(['error' => 'Préstamo no encontrado.'], 404);
+        }
+
+        $abonos = DB::table('PRESTAMO_ABONO')
+            ->leftJoin('DETALLE_PLANILLA', 'PRESTAMO_ABONO.ID_DETALLEPLANILLA', '=', 'DETALLE_PLANILLA.ID_DETALLEPLANILLA')
+            ->leftJoin('PLANILLA', 'DETALLE_PLANILLA.ID_PLANILLA', '=', 'PLANILLA.ID_PLANILLA')
+            ->where('PRESTAMO_ABONO.ID_PRESTAMO', $id)
+            ->orderBy('PRESTAMO_ABONO.FECHAABONO', 'desc')
+            ->select(
+                'PRESTAMO_ABONO.ID_PRESTAMOABONO',
+                'PRESTAMO_ABONO.FECHAABONO',
+                'PRESTAMO_ABONO.MONTOABONADO',
+                'PRESTAMO_ABONO.CONCEPTO',
+                'PRESTAMO_ABONO.FUERA_PLANILLA',
+                'PLANILLA.ID_PLANILLA',
+                'PLANILLA.TITULO AS TITULO_PLANILLA',
+                'PLANILLA.FECHAPAGO'
+            )
+            ->get();
+
+        $totalAbonado = round((float) $abonos->sum('MONTOABONADO'), 2);
+        $resumen = $this->syncPrestamoSaldo((int) $id);
+
+        return response()->json([
+            'prestamo' => DB::table('PRESTAMOS')
+                ->join('EMPLEADO', 'PRESTAMOS.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
+                ->join('TIPO_PRESTAMO', 'PRESTAMOS.ID_TIPOPRESTAMO', '=', 'TIPO_PRESTAMO.ID_TIPOPRESTAMO')
+                ->where('PRESTAMOS.ID_PRESTAMO', $id)
+                ->select(
+                    'PRESTAMOS.*',
+                    'EMPLEADO.CODIGOEMPLEADO',
+                    DB::raw('"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1" AS NOMBRE_EMPLEADO'),
+                    'TIPO_PRESTAMO.NOMBREPRESTAMO'
+                )
+                ->first(),
+            'abonos' => $abonos,
+            'resumen' => $resumen,
+        ]);
+    }
+
+    public function destroyAbono($prestamoId, $abonoId)
+    {
+        $abono = DB::table('PRESTAMO_ABONO')
+            ->where('ID_PRESTAMOABONO', $abonoId)
+            ->where('ID_PRESTAMO', $prestamoId)
+            ->first();
+
+        if (!$abono) {
+            return response()->json(['error' => 'Abono no encontrado.'], 404);
+        }
+
+        DB::transaction(function () use ($abono) {
+            DB::table('PRESTAMO_ABONO')->where('ID_PRESTAMOABONO', $abono->ID_PRESTAMOABONO)->delete();
+            $this->syncPrestamoSaldo((int) $abono->ID_PRESTAMO, true);
+        });
+
+        $prestamo = DB::table('PRESTAMOS')->where('ID_PRESTAMO', $prestamoId)->first();
+
+        return response()->json([
+            'message' => 'Cuota/abono eliminado. Saldo y estado del préstamo actualizados.',
+            'resumen' => $this->buildResumenFromPrestamo($prestamo),
+        ]);
+    }
+
+    /**
+     * Recalcula saldo y estado del préstamo según abonos registrados.
+     */
+    private function syncPrestamoSaldo(int $prestamoId, bool $reactivateIfSaldo = false): array
+    {
+        $prestamo = DB::table('PRESTAMOS')->where('ID_PRESTAMO', $prestamoId)->first();
+        if (!$prestamo) {
+            return [];
+        }
+
+        $totalAbonado = round((float) DB::table('PRESTAMO_ABONO')
+            ->where('ID_PRESTAMO', $prestamoId)
+            ->sum('MONTOABONADO'), 2);
+
+        $saldo = max(0, round((float) $prestamo->MONTOPRESTAMO - $totalAbonado, 2));
+        $cuotasPagadas = (int) DB::table('PRESTAMO_ABONO')->where('ID_PRESTAMO', $prestamoId)->count();
+
+        $updates = ['SALDO_ACTUAL' => $saldo];
+
+        if ($saldo <= 0) {
+            $updates['PRESTAMOESTADO'] = false;
+            $updates['FECHAFINALIZACION'] = $prestamo->FECHAFINALIZACION ?? now();
+        } elseif ($reactivateIfSaldo) {
+            $updates['PRESTAMOESTADO'] = true;
+            $updates['FECHAFINALIZACION'] = null;
+        }
+
+        DB::table('PRESTAMOS')->where('ID_PRESTAMO', $prestamoId)->update($updates);
+
+        return [
+            'total_abonado' => $totalAbonado,
+            'cuotas_pagadas' => $cuotasPagadas,
+            'cuotas_pendientes' => max(0, (int) $prestamo->NUMCUOTAS - $cuotasPagadas),
+            'saldo_actual' => $saldo,
+        ];
+    }
+
+    private function buildResumenFromPrestamo($prestamo): array
+    {
+        if (!$prestamo) {
+            return [];
+        }
+
+        $totalAbonado = round((float) DB::table('PRESTAMO_ABONO')
+            ->where('ID_PRESTAMO', $prestamo->ID_PRESTAMO)
+            ->sum('MONTOABONADO'), 2);
+        $cuotasPagadas = (int) DB::table('PRESTAMO_ABONO')->where('ID_PRESTAMO', $prestamo->ID_PRESTAMO)->count();
+
+        return [
+            'total_abonado' => $totalAbonado,
+            'cuotas_pagadas' => $cuotasPagadas,
+            'cuotas_pendientes' => max(0, (int) $prestamo->NUMCUOTAS - $cuotasPagadas),
+            'saldo_actual' => round((float) $prestamo->SALDO_ACTUAL, 2),
+        ];
+    }
+
     public function store(Request $request)
     {
         $request->validate([

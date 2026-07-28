@@ -295,6 +295,7 @@ import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { SI_NO_BOOL_OPTIONS, ACTIVO_BOOL_OPTIONS } from '../../utils/staticSelectOptions';
 
 const tabs = [
@@ -393,7 +394,7 @@ const savePermissions = async () => {
     showPermissionsModal.value = false;
     loadData();
   } catch (err) {
-    alert('Error al guardar excepciones.');
+    await dialog.alert({ title: 'Error', message: 'No se pudieron guardar las excepciones.', variant: 'danger' });
   }
 };
 
@@ -429,10 +430,14 @@ const saveRol = async () => {
 };
 
 const inactivateRol = async (r) => {
-  if (confirm(`¿Inactivar rol "${r.NOMBREROL}"?`)) {
-    await api.delete(`/roles/${r.ID_ROL}`);
-    loadData();
-  }
+  if (!await dialog.confirm({
+    title: 'Inactivar rol',
+    message: `¿Inactivar el rol "${r.NOMBREROL}"?`,
+    variant: 'warning',
+    confirmText: 'Sí, inactivar',
+  })) return;
+  await api.delete(`/roles/${r.ID_ROL}`);
+  loadData();
 };
 
 const openRolPermisosModal = async (r) => {
@@ -452,7 +457,7 @@ const saveRolPermisos = async () => {
     showRolPermisosModal.value = false;
     loadData();
   } catch (err) {
-    alert('Error al guardar permisos del rol.');
+    await dialog.alert({ title: 'Error', message: 'No se pudieron guardar los permisos del rol.', variant: 'danger' });
   }
 };
 

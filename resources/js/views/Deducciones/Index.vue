@@ -201,6 +201,7 @@ import { ref, computed, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { CATEGORIA_DESCUENTO_OPTIONS } from '../../utils/staticSelectOptions';
 
 const activeTab = ref('descuentos');
@@ -274,10 +275,14 @@ const saveDescuento = async () => {
   } catch (err) { modalError.value = 'Error al guardar.'; }
 };
 const inactivateDescuento = async (desc) => {
-  if (confirm('¿Inactivar descuento?')) {
-    await api.delete(`/tipo-descuento/${desc.ID_TIPODESCUENTO}`);
-    loadData();
-  }
+  if (!await dialog.confirm({
+    title: 'Inactivar descuento',
+    message: '¿Inactivar este tipo de descuento?',
+    variant: 'warning',
+    confirmText: 'Sí, inactivar',
+  })) return;
+  await api.delete(`/tipo-descuento/${desc.ID_TIPODESCUENTO}`);
+  loadData();
 };
 
 // Ingreso Handlers
@@ -305,9 +310,13 @@ const saveIngreso = async () => {
   } catch (err) { modalError.value = 'Error al guardar.'; }
 };
 const inactivateIngreso = async (ing) => {
-  if (confirm('¿Inactivar ingreso?')) {
-    await api.delete(`/tipo-ingreso/${ing.ID_TIPOINGRESO}`);
-    loadData();
-  }
+  if (!await dialog.confirm({
+    title: 'Inactivar ingreso',
+    message: '¿Inactivar este tipo de ingreso?',
+    variant: 'warning',
+    confirmText: 'Sí, inactivar',
+  })) return;
+  await api.delete(`/tipo-ingreso/${ing.ID_TIPOINGRESO}`);
+  loadData();
 };
 </script>

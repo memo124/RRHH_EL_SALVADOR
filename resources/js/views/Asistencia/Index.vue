@@ -123,6 +123,7 @@ import { ref, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { TIPO_MARCACION_OPTIONS } from '../../utils/staticSelectOptions';
 import { field, fieldStr } from '../../utils/fields';
 
@@ -183,7 +184,11 @@ const loadAsistencia = async () => {
 
 const saveMarc = async () => {
   if (!marcForm.value.ID_EMPLEADO) {
-    alert('Seleccione un empleado.');
+    await dialog.alert({
+      title: 'Empleado requerido',
+      message: 'Seleccione un empleado antes de guardar la marcación.',
+      variant: 'warning',
+    });
     return;
   }
   await api.post('/marcaciones', marcForm.value);

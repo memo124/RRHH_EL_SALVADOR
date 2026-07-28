@@ -5,7 +5,7 @@ cd /d "%~dp0"
 REM Usar PHP 8.2 (ajuste la ruta segun su instalacion)
 REM AppServ:  set "PHP=C:\AppServ\php8.2\php.exe"
 REM XAMPP:    set "PHP=C:\xampp\php\php.exe"
-set "PHP=C:\AppServ\php8.2\php.exe"
+set "PHP=C:\xampp\php\php.exe"
 
 if not exist "%PHP%" (
     echo [ERROR] No se encontro PHP 8.2 en %PHP%

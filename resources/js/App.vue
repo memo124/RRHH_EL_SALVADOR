@@ -1,11 +1,11 @@
 <template>
   <div class="h-full relative">
-    <div
-      v-if="isLoading"
-      class="fixed top-0 left-0 right-0 h-1.5 bg-indigo-600 dark:bg-indigo-400 z-50 animate-pulse"
-    ></div>
+    <div v-if="isLoading" class="app-loader-track">
+      <div class="app-loader-bar"></div>
+    </div>
 
     <AppToast />
+    <AppDialog />
     <router-view></router-view>
   </div>
 </template>
@@ -15,6 +15,7 @@ import { onMounted } from 'vue';
 import { isLoading } from './services/api';
 import { loadUserTheme, getCurrentUserId } from './utils/theme';
 import AppToast from './components/AppToast.vue';
+import AppDialog from './components/AppDialog.vue';
 
 onMounted(() => {
   if (getCurrentUserId()) {

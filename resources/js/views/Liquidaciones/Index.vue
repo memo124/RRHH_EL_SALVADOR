@@ -98,6 +98,7 @@ import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import AsyncSelect from '../../components/AsyncSelect.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 import { field, fieldStr } from '../../utils/fields';
 
 const items = ref([]);
@@ -162,7 +163,12 @@ const preview = async () => {
 
 const guardar = async () => {
   if (saving.value || !previewData.value) return;
-  if (!confirm('¿Confirmar liquidación? El empleado será inactivado.')) return;
+  if (!await dialog.confirm({
+    title: 'Confirmar liquidación',
+    message: '¿Confirma registrar esta liquidación? El empleado será inactivado.',
+    variant: 'danger',
+    confirmText: 'Sí, liquidar',
+  })) return;
 
   saving.value = true;
   modalError.value = '';

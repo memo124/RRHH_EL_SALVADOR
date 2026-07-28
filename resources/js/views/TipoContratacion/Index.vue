@@ -187,6 +187,7 @@ import { ref, computed, onMounted } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import api from '../../services/api';
+import { dialog } from '../../composables/useDialog';
 
 const tipos = ref([]);
 const loading = ref(false);
@@ -279,13 +280,21 @@ const saveForm = async () => {
 };
 
 const inactivateTipo = async (tipo) => {
-  if (confirm(`¿Seguro que desea inactivar ${tipo.TIPOCONTRATACION}?`)) {
-    try {
-      await api.delete(`/tipo-contratacion/${tipo.ID_TIPOCONTRATACION}`);
-      loadTipos();
-    } catch (err) {
-      alert(err.response?.data?.error || err.response?.data?.message || 'Error al inactivar el registro.');
-    }
+  if (!await dialog.confirm({
+    title: 'Inactivar tipo',
+    message: `¿Seguro que desea inactivar ${tipo.TIPOCONTRATACION}?`,
+    variant: 'warning',
+    confirmText: 'Sí, inactivar',
+  })) return;
+  try {
+    await api.delete(`/tipo-contratacion/${tipo.ID_TIPOCONTRATACION}`);
+    loadTipos();
+  } catch (err) {
+    await dialog.alert({
+      title: 'Error',
+      message: err.response?.data?.error || err.response?.data?.message || 'No se pudo inactivar el registro.',
+      variant: 'danger',
+    });
   }
 };
 </script>

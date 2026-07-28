@@ -64,7 +64,13 @@ Abrir `http://127.0.0.1:8000`
 | Linux (Ubuntu/Debian) | [docs/INSTALACION-LINUX.md](docs/INSTALACION-LINUX.md) |
 | Docker | [docs/INSTALACION-DOCKER.md](docs/INSTALACION-DOCKER.md) |
 
-Documentación técnica adicional: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
+Documentación técnica adicional:
+
+| Documento | Contenido |
+|-----------|-----------|
+| [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | Capas, carpetas, APIs paginadas |
+| [docs/FRONTEND-UX.md](docs/FRONTEND-UX.md) | Diálogos, modales, toasts, tema oscuro |
+| [docs/API-CONCEPTOS-EMPLEADO.md](docs/API-CONCEPTOS-EMPLEADO.md) | Detalle de pagos, abonos, incapacidades |
 
 ---
 
@@ -99,6 +105,13 @@ Documentación técnica adicional: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 - Selects async con `@tanstack/vue-virtual` (`AsyncSelect`)
 - API de catálogos: `GET /api/catalogs/{tipo}/select`
 - Empleados: `GET /api/empleados/select`
+
+## UX (diálogos y modales)
+
+- Diálogos interactivos (`dialog.confirm`, `dialog.form`, etc.) — ver [docs/FRONTEND-UX.md](docs/FRONTEND-UX.md)
+- Modales de formulario con overlay global (`AppModalShell`)
+- Notificaciones toast (`useToast`) para resultados de API
+- Detalle de pagos en conceptos por empleado — ver [docs/API-CONCEPTOS-EMPLEADO.md](docs/API-CONCEPTOS-EMPLEADO.md)
 
 ---
 

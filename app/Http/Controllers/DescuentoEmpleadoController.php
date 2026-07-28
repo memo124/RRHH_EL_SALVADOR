@@ -104,6 +104,39 @@ class DescuentoEmpleadoController extends Controller
         return response()->json(['message' => 'Descuento actualizado correctamente.']);
     }
 
+    public function historial($id)
+    {
+        $descuento = DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $id)->first();
+        if (!$descuento) {
+            return response()->json(['error' => 'Descuento no encontrado.'], 404);
+        }
+
+        $aplicaciones = DB::table('DETALLE_DESCUENTO_PLANILLA')
+            ->join('DETALLE_PLANILLA', 'DETALLE_DESCUENTO_PLANILLA.ID_DETALLEPLANILLA', '=', 'DETALLE_PLANILLA.ID_DETALLEPLANILLA')
+            ->join('PLANILLA', 'DETALLE_PLANILLA.ID_PLANILLA', '=', 'PLANILLA.ID_PLANILLA')
+            ->where('DETALLE_PLANILLA.ID_EMPLEADO', $descuento->ID_EMPLEADO)
+            ->where('DETALLE_DESCUENTO_PLANILLA.ID_TIPODESCUENTO', $descuento->ID_TIPODESCUENTO)
+            ->where('DETALLE_DESCUENTO_PLANILLA.CATEGORIA', 'DESCUENTO')
+            ->orderBy('PLANILLA.FECHAPAGO', 'desc')
+            ->select(
+                'DETALLE_DESCUENTO_PLANILLA.CONCEPTO',
+                'DETALLE_DESCUENTO_PLANILLA.MONTO',
+                'PLANILLA.ID_PLANILLA',
+                'PLANILLA.TITULO',
+                'PLANILLA.FECHAPAGO'
+            )
+            ->get();
+
+        return response()->json([
+            'descuento' => $descuento,
+            'aplicaciones' => $aplicaciones,
+            'resumen' => [
+                'total_aplicado' => round((float) $aplicaciones->sum('MONTO'), 2),
+                'veces_aplicado' => $aplicaciones->count(),
+            ],
+        ]);
+    }
+
     public function destroy($id)
     {
         DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $id)->update(['ESACTIVO' => false]);

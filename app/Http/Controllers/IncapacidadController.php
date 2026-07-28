@@ -94,11 +94,18 @@ class IncapacidadController extends Controller
         ], 201);
     }
 
-    public function cancelar($id)
+    public function cancelar(Request $request, $id)
     {
-        DB::table('INCAPACIDAD')->where('ID_INCAPACIDAD', $id)->update([
-            'ESTADO_INCAPACIDAD' => 'CANCELADA',
+        $request->validate([
+            'motivo' => 'nullable|string|max:500',
         ]);
+
+        $updates = ['ESTADO_INCAPACIDAD' => 'CANCELADA'];
+        if ($request->filled('motivo')) {
+            $updates['OBSERVACIONES'] = $request->motivo;
+        }
+
+        DB::table('INCAPACIDAD')->where('ID_INCAPACIDAD', $id)->update($updates);
 
         return response()->json(['message' => 'Incapacidad cancelada.']);
     }
