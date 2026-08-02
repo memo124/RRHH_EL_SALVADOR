@@ -25,6 +25,7 @@ class UsuarioSeeder extends Seeder
             ['ID_MODULO' => 5, 'NOMBREMODULO' => 'Deducciones e Ingresos', 'DESCRIPCION' => 'Préstamos, descuentos, incapacidades', 'RUTA_URL' => '/deducciones', 'ICONO' => 'calculator', 'ORDEN' => 5, 'ESACTIVO' => true],
             ['ID_MODULO' => 6, 'NOMBREMODULO' => 'Seguridad', 'DESCRIPCION' => 'Usuarios, Roles, Permisos', 'RUTA_URL' => '/seguridad', 'ICONO' => 'shield', 'ORDEN' => 6, 'ESACTIVO' => true],
             ['ID_MODULO' => 7, 'NOMBREMODULO' => 'Asistencia', 'DESCRIPCION' => 'Horarios, marcaciones y asistencia', 'RUTA_URL' => '/asistencia', 'ICONO' => 'clock', 'ORDEN' => 7, 'ESACTIVO' => true],
+            ['ID_MODULO' => 8, 'NOMBREMODULO' => 'Contratos Laborales', 'DESCRIPCION' => 'Contratos, plantillas HTML y documentos laborales', 'RUTA_URL' => '/contratos', 'ICONO' => 'file-text', 'ORDEN' => 8, 'ESACTIVO' => true],
         ];
 
         foreach ($modulos as $mod) {
@@ -74,6 +75,12 @@ class UsuarioSeeder extends Seeder
             ['ID_PERMISO' => 26, 'ID_MODULO' => 7, 'CODIGO_PERMISO' => 'ASISTENCIA_CREATE', 'NOMBRE_PERMISO' => 'Crear Asistencia', 'DESCRIPCION' => 'Permite registrar marcaciones y horarios'],
             ['ID_PERMISO' => 27, 'ID_MODULO' => 7, 'CODIGO_PERMISO' => 'ASISTENCIA_UPDATE', 'NOMBRE_PERMISO' => 'Editar Asistencia', 'DESCRIPCION' => 'Permite procesar asistencia y editar horarios'],
             ['ID_PERMISO' => 28, 'ID_MODULO' => 7, 'CODIGO_PERMISO' => 'ASISTENCIA_DELETE', 'NOMBRE_PERMISO' => 'Eliminar Asistencia', 'DESCRIPCION' => 'Permite inactivar horarios'],
+
+            // Contratos Laborales
+            ['ID_PERMISO' => 29, 'ID_MODULO' => 8, 'CODIGO_PERMISO' => 'CONTRATO_VIEW', 'NOMBRE_PERMISO' => 'Ver Contratos', 'DESCRIPCION' => 'Permite ver contratos laborales y plantillas'],
+            ['ID_PERMISO' => 30, 'ID_MODULO' => 8, 'CODIGO_PERMISO' => 'CONTRATO_CREATE', 'NOMBRE_PERMISO' => 'Crear Contratos', 'DESCRIPCION' => 'Permite crear contratos y plantillas'],
+            ['ID_PERMISO' => 31, 'ID_MODULO' => 8, 'CODIGO_PERMISO' => 'CONTRATO_UPDATE', 'NOMBRE_PERMISO' => 'Editar Contratos', 'DESCRIPCION' => 'Permite editar contratos y plantillas'],
+            ['ID_PERMISO' => 32, 'ID_MODULO' => 8, 'CODIGO_PERMISO' => 'CONTRATO_DELETE', 'NOMBRE_PERMISO' => 'Anular Contratos', 'DESCRIPCION' => 'Permite anular contratos e inactivar plantillas'],
         ];
 
         foreach ($permisos as $perm) {

@@ -85,6 +85,15 @@ class CatalogosSueldosSeeder extends Seeder
             DB::table('TIPO_INGRESO')->updateOrInsert(['ID_TIPOINGRESO' => $ing['ID_TIPOINGRESO']], $ing);
         }
 
+        DB::table('PERFIL_PAGO')->updateOrInsert(
+            ['ID_PERFILPAGO' => 1],
+            [
+                'PEFILPAGO' => 'Estándar',
+                'GRATIFICACIONES' => true,
+                'EXTRA_GRATIFICACIONES' => true,
+            ]
+        );
+
         // Call IsrFrecuenciaSeeder and TaxSeeder for Retenciones/Frecuencias
         $isrSeeder = new IsrFrecuenciaSeeder();
         $isrSeeder->run();

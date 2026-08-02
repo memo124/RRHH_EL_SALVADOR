@@ -89,6 +89,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:CORP_UPDATE')->put   ('/rutas/{id}',[CorporativoController::class, 'updateRuta']);
     Route::middleware('permission:CORP_DELETE')->delete('/rutas/{id}',[CorporativoController::class, 'destroyRuta']);
 
+    // ── Corporativo – Firmantes ───────────────────────────────────────────────
+    Route::middleware('permission:CORP_VIEW')  ->get   ('/firmantes',     [CorporativoController::class, 'indexFirmantes']);
+    Route::middleware('permission:CORP_CREATE')->post  ('/firmantes',     [CorporativoController::class, 'storeFirmante']);
+    Route::middleware('permission:CORP_UPDATE')->put   ('/firmantes/{id}',[CorporativoController::class, 'updateFirmante']);
+    Route::middleware('permission:CORP_DELETE')->delete('/firmantes/{id}',[CorporativoController::class, 'destroyFirmante']);
+
+    // ── Contratos laborales ───────────────────────────────────────────────────
+    Route::middleware('permission:CONTRATO_VIEW')  ->get   ('/plantillas-contrato/campos',        [App\Http\Controllers\PlantillaContratoController::class, 'campos']);
+    Route::middleware('permission:CONTRATO_VIEW')  ->get   ('/plantillas-contrato',               [App\Http\Controllers\PlantillaContratoController::class, 'index']);
+    Route::middleware('permission:CONTRATO_VIEW')  ->get   ('/plantillas-contrato/{id}/preview',  [App\Http\Controllers\PlantillaContratoController::class, 'preview']);
+    Route::middleware('permission:CONTRATO_CREATE')->post  ('/plantillas-contrato',               [App\Http\Controllers\PlantillaContratoController::class, 'store']);
+    Route::middleware('permission:CONTRATO_UPDATE')->put   ('/plantillas-contrato/{id}',          [App\Http\Controllers\PlantillaContratoController::class, 'update']);
+    Route::middleware('permission:CONTRATO_DELETE')->delete('/plantillas-contrato/{id}',          [App\Http\Controllers\PlantillaContratoController::class, 'destroy']);
+
+    Route::middleware('permission:CONTRATO_VIEW')  ->post  ('/contratos/lote/preview',       [App\Http\Controllers\ContratoController::class, 'previewLote']);
+    Route::middleware('permission:CONTRATO_CREATE')->post  ('/contratos/lote/generar',         [App\Http\Controllers\ContratoController::class, 'generarLote']);
+    Route::middleware('permission:CONTRATO_VIEW')  ->get   ('/contratos',                    [App\Http\Controllers\ContratoController::class, 'index']);
+    Route::middleware('permission:CONTRATO_VIEW')  ->post  ('/contratos/numero-a-letras',    [App\Http\Controllers\ContratoController::class, 'numeroALetras']);
+    Route::middleware('permission:CONTRATO_CREATE')->post  ('/contratos',                    [App\Http\Controllers\ContratoController::class, 'store']);
+    Route::middleware('permission:CONTRATO_UPDATE')->put   ('/contratos/{id}',               [App\Http\Controllers\ContratoController::class, 'update']);
+    Route::middleware('permission:CONTRATO_UPDATE')->post  ('/contratos/{id}/regenerar',     [App\Http\Controllers\ContratoController::class, 'regenerar']);
+    Route::middleware('permission:CONTRATO_DELETE')->delete('/contratos/{id}',              [App\Http\Controllers\ContratoController::class, 'destroy']);
+
     // ── Deducciones – Tipo Descuento ──────────────────────────────────────────
     Route::middleware('permission:DEDUCCIONES_VIEW')  ->get   ('/tipo-descuento',     [DeduccionesController::class, 'indexDescuentos']);
     Route::middleware('permission:DEDUCCIONES_CREATE')->post  ('/tipo-descuento',     [DeduccionesController::class, 'storeDescuento']);

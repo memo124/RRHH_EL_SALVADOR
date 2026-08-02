@@ -22,6 +22,10 @@ class TipoContratacionSeeder extends Seeder
                 'APLICA_RENTA_FIJA' => false,
                 'PORCENTAJE_RENTA_FIJA' => 0.00,
                 'APLICA_INSAFORP' => true,
+                'APLICA_AGUINALDO' => true,
+                'APLICA_QUINCENA_25' => true,
+                'ANIOS_MINIMOS_QUINCENA_25' => 1,
+                'PORCENTAJE_QUINCENA_25' => 50.00,
                 'ESACTIVO' => true,
             ],
             [
@@ -36,6 +40,10 @@ class TipoContratacionSeeder extends Seeder
                 'APLICA_RENTA_FIJA' => true,
                 'PORCENTAJE_RENTA_FIJA' => 10.00,
                 'APLICA_INSAFORP' => false,
+                'APLICA_AGUINALDO' => false,
+                'APLICA_QUINCENA_25' => false,
+                'ANIOS_MINIMOS_QUINCENA_25' => 1,
+                'PORCENTAJE_QUINCENA_25' => 50.00,
                 'ESACTIVO' => true,
             ],
             [
@@ -50,6 +58,8 @@ class TipoContratacionSeeder extends Seeder
                 'APLICA_RENTA_FIJA' => false,
                 'PORCENTAJE_RENTA_FIJA' => 0.00,
                 'APLICA_INSAFORP' => false,
+                'APLICA_AGUINALDO' => false,
+                'APLICA_QUINCENA_25' => false,
                 'ESACTIVO' => true,
             ],
         ];

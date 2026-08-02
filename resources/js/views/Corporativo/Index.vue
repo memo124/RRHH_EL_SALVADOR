@@ -201,6 +201,29 @@
           </table>
         </div>
 
+        <!-- ── FIRMANTES ───────────────────────────────────────────────── -->
+        <div v-else-if="activeTab === 'firmantes'" class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
+            <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
+              <th class="px-6 py-4">ID</th><th class="px-6 py-4">Nombre</th><th class="px-6 py-4">Cargo</th><th class="px-6 py-4">Empresa</th><th class="px-6 py-4">Orden</th><th class="px-6 py-4">Estado</th><th class="px-6 py-4 text-right">Acciones</th>
+            </tr></thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+              <tr v-for="r in records" :key="r.ID_FIRMANTE" class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <td class="px-6 py-4 text-slate-500">{{ r.ID_FIRMANTE }}</td>
+                <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ r.NOMBRE }}</td>
+                <td class="px-6 py-4">{{ r.CARGO || '—' }}</td>
+                <td class="px-6 py-4">{{ r.NOMBREEMPRESA || empresaNombre(r.ID_EMPRESA) }}</td>
+                <td class="px-6 py-4">{{ r.ORDEN }}</td>
+                <td class="px-6 py-4"><span :class="r.ESACTIVO ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" class="px-2 py-0.5 rounded text-xs font-semibold">{{ r.ESACTIVO ? 'Activo' : 'Inactivo' }}</span></td>
+                <td class="px-6 py-4 text-right space-x-2">
+                  <IconActionButton variant="edit" @click="openEdit(r)" />
+                  <IconActionButton v-if="r.ESACTIVO" variant="inactivate" @click="inactivate(r, 'firmantes', 'ID_FIRMANTE')" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <PaginationBar
           v-if="!loading"
           :page="page"
@@ -228,6 +251,8 @@
               <FormField label="Abreviatura" v-model="form.ABREVIATURA" />
               <FormField label="NIT" v-model="form.NUMERONIT" />
               <FormField label="Reg. Patronal" v-model="form.NUMEROREGISTRO" />
+              <FormField label="Nombre del dueño / representante" v-model="form.NOMBRE_DUENO" />
+              <FormField label="DUI del dueño" v-model="form.DUI_DUENO" />
               <FormField label="Teléfono" v-model="form.TELEFONO" />
               <FormField label="Giro" v-model="form.GIRO" />
               <FormField label="Dirección" v-model="form.DIRECCION" />
@@ -377,6 +402,21 @@
               </div>
             </template>
 
+            <!-- FIRMANTE FIELDS -->
+            <template v-else-if="activeTab === 'firmantes'">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Empresa *</label>
+                <AsyncSelect v-model="form.ID_EMPRESA" catalog="empresas" placeholder="Seleccionar empresa" />
+              </div>
+              <FormField label="Nombre del firmante *" v-model="form.NOMBRE" required />
+              <FormField label="Cargo" v-model="form.CARGO" />
+              <FormField label="DUI" v-model="form.DUI" />
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Orden de firma</label>
+                <input v-model.number="form.ORDEN" type="number" min="1" class="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700" />
+              </div>
+            </template>
+
             <div v-if="modalError" class="text-xs text-red-500 bg-red-50 p-2 rounded font-semibold">{{ modalError }}</div>
             <div class="flex justify-end space-x-3 pt-4 border-t">
               <button data-no-lock type="button" @click="showModal = false" class="px-4 py-2 border rounded-lg text-sm hover:bg-slate-50">Cancelar</button>
@@ -421,6 +461,7 @@ const tabs = [
   { key: 'sucursales',    label: 'Sucursales',     addLabel: 'Nueva Sucursal',       api: 'sucursales',    search: 'NOMBRESUCURSAL' },
   { key: 'bodegas',       label: 'Bodegas',        addLabel: 'Nueva Bodega',         api: 'bodegas',       search: 'NOMBREBODEGA' },
   { key: 'rutas',         label: 'Rutas',          addLabel: 'Nueva Ruta',           api: 'rutas',         search: 'NOMBRERUTA' },
+  { key: 'firmantes',     label: 'Firmantes',      addLabel: 'Nuevo Firmante',       api: 'firmantes',     search: 'NOMBRE' },
 ];
 
 const activeTab = ref('empresas');
@@ -487,7 +528,7 @@ watch(() => form.value.ID_EMPRESA, (next, prev) => {
 });
 
 const defaultForms = {
-  empresas:      { NOMBREEMPRESA: '', ABREVIATURA: '', NUMERONIT: '', NUMEROREGISTRO: '', TELEFONO: '', GIRO: '', DIRECCION: '', URL_LOGO: '' },
+  empresas:      { NOMBREEMPRESA: '', ABREVIATURA: '', NUMERONIT: '', NUMEROREGISTRO: '', NOMBRE_DUENO: '', DUI_DUENO: '', TELEFONO: '', GIRO: '', DIRECCION: '', URL_LOGO: '' },
   areas:         { NOMBREAREA: '', ID_EMPRESA: null, PRORRATEADA: false, ACTIVA: true },
   'centros-costo':{ ID_EMPRESA: null, CODIGO_CENTROCOSTO: '', NOMBRE_CENTROCOSTO: '', DESCRIPCION: '' },
   departamentos: { NOMBREDEPARTAMENTO: '', ID_EMPRESA: null, ID_AREA: null, ID_CENTROCOSTO: null, CUENTACONTABLE: '' },
@@ -495,10 +536,11 @@ const defaultForms = {
   sucursales:    { NOMBRESUCURSAL: '', ID_EMPRESA: null, DIRECCION: '', ESACTIVA: true },
   bodegas:       { NOMBREBODEGA: '', ID_EMPRESA: null },
   rutas:         { NOMBRERUTA: '', ID_EMPRESA: null, ID_CENTROCOSTO: null, ESACTIVA: true },
+  firmantes:     { ID_EMPRESA: null, NOMBRE: '', CARGO: '', DUI: '', ORDEN: 1, ESACTIVO: true },
 };
 
 const getIdKey = (tab) => {
-  const map = { empresas: 'ID_EMPRESA', areas: 'ID_AREA', 'centros-costo': 'ID_CENTROCOSTO', departamentos: 'ID_DEPARTAMENTO', cargos: 'ID_CARGO', sucursales: 'ID_SUCURSAL', bodegas: 'ID_BODEGA', rutas: 'ID_RUTA' };
+  const map = { empresas: 'ID_EMPRESA', areas: 'ID_AREA', 'centros-costo': 'ID_CENTROCOSTO', departamentos: 'ID_DEPARTAMENTO', cargos: 'ID_CARGO', sucursales: 'ID_SUCURSAL', bodegas: 'ID_BODEGA', rutas: 'ID_RUTA', firmantes: 'ID_FIRMANTE' };
   return map[tab];
 };
 

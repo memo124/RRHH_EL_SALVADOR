@@ -21,6 +21,9 @@ class TipoContratacion extends Model
         'APLICA_RENTA_FIJA' => 'boolean',
         'PORCENTAJE_RENTA_FIJA' => 'decimal:2',
         'APLICA_INSAFORP' => 'boolean',
+        'APLICA_AGUINALDO' => 'boolean',
+        'APLICA_QUINCENA_25' => 'boolean',
+        'PORCENTAJE_QUINCENA_25' => 'decimal:2',
         'ESACTIVO' => 'boolean',
     ];
 

@@ -7,13 +7,27 @@ function parseFilename(response) {
   return match?.[1] || null;
 }
 
-async function fetchReport(path, { asText = false } = {}) {
+function buildReportUrl(path, extraParams = {}) {
+  const url = new URL(path, window.location.origin);
+  const token = localStorage.getItem('token');
+  if (token) {
+    url.searchParams.set('token', token);
+  }
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  return url.toString();
+}
+
+async function fetchReport(path, { asText = false, params = {} } = {}) {
   const token = localStorage.getItem('token');
   if (!token) {
     throw new Error('Debe iniciar sesión para generar reportes.');
   }
 
-  const response = await fetch(`${path}?token=${encodeURIComponent(token)}`, {
+  const response = await fetch(buildReportUrl(path, params), {
     headers: { Accept: asText ? 'text/html' : '*/*' },
   });
 
@@ -53,11 +67,11 @@ export function usePlanillaReports() {
     reportMessage.value = '';
   };
 
-  const openPrintWhenReady = async (path, { key, label }) => {
+  const openPrintWhenReady = async (path, { key, label, params = {} } = {}) => {
     if (reportLoading.value) return;
     start(key, `Generando ${label}…`);
     try {
-      const { text } = await fetchReport(path, { asText: true });
+      const { text } = await fetchReport(path, { asText: true, params });
       const win = window.open('', '_blank');
       if (!win) {
         throw new Error('Permita ventanas emergentes para abrir el reporte.');
@@ -73,11 +87,34 @@ export function usePlanillaReports() {
     }
   };
 
-  const downloadFileWhenReady = async (path, { key, label, fallbackName }) => {
+  const openPdfViewWhenReady = async (path, { key, label, params = {} } = {}) => {
     if (reportLoading.value) return;
     start(key, `Generando ${label}…`);
     try {
-      const { blob, filename } = await fetchReport(path);
+      const { blob } = await fetchReport(path, { params });
+      const pdfBlob = blob.type === 'application/pdf'
+        ? blob
+        : new Blob([blob], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(pdfBlob);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        window.URL.revokeObjectURL(url);
+        throw new Error('Permita ventanas emergentes para ver el PDF.');
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 120000);
+      toast.success(`${label}`, 'PDF listo en una nueva pestaña.');
+    } catch (err) {
+      toast.error('Error al generar PDF', err.message);
+    } finally {
+      stop();
+    }
+  };
+
+  const downloadFileWhenReady = async (path, { key, label, fallbackName, params = {} } = {}) => {
+    if (reportLoading.value) return;
+    start(key, `Generando ${label}…`);
+    try {
+      const { blob, filename } = await fetchReport(path, { params });
       const name = filename || fallbackName;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -102,7 +139,9 @@ export function usePlanillaReports() {
     reportLoading,
     reportMessage,
     openPrintWhenReady,
+    openPdfViewWhenReady,
     downloadFileWhenReady,
+    buildReportUrl,
     isLoading,
     isBusy,
     toast,

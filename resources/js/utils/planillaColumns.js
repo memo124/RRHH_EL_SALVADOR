@@ -147,3 +147,45 @@ export function abreviarContrato(nombre) {
   if (nombre.includes('Permanente')) return 'Permanente';
   return nombre.length > 18 ? `${nombre.slice(0, 16)}…` : nombre;
 }
+
+const SIN_AREA = 'Sin área';
+const SIN_DEPTO = 'Sin departamento';
+
+export function groupDetallesByAreaDepartamento(detalles) {
+  const areas = new Map();
+
+  for (const det of detalles || []) {
+    const area = String(det.AREA || '').trim() || SIN_AREA;
+    const depto = String(det.DEPARTAMENTO || '').trim() || SIN_DEPTO;
+    if (!areas.has(area)) areas.set(area, new Map());
+    const deptos = areas.get(area);
+    if (!deptos.has(depto)) deptos.set(depto, []);
+    deptos.get(depto).push(det);
+  }
+
+  return [...areas.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+    .map(([area, deptosMap]) => ({
+      area,
+      departamentos: [...deptosMap.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+        .map(([departamento, items]) => ({ departamento, detalles: items })),
+      detalles: [...deptosMap.values()].flat(),
+    }));
+}
+
+export function buildPlanillaSubtotalRow(label, detalles, ingresos, descuentos, patronal) {
+  return [
+    label,
+    '',
+    '',
+    '',
+    '',
+    ...ingresos.map((ing) => totalConceptoIngreso(detalles, ing.key)),
+    (detalles || []).reduce((sum, det) => sum + Number(det.TOTAL_DEVENGADO ?? 0), 0),
+    ...descuentos.map((c) => totalConceptoDescuento(detalles, c)),
+    (detalles || []).reduce((sum, det) => sum + Number(det.TOTAL_DEDUCCIONES ?? 0), 0),
+    (detalles || []).reduce((sum, det) => sum + Number(det.LIQUIDO_A_RECIBIR ?? 0), 0),
+    ...patronal.map((p) => totalConceptoPatronal(detalles, p)),
+  ];
+}

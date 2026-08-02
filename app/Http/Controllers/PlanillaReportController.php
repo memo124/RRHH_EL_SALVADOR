@@ -22,39 +22,35 @@ class PlanillaReportController extends Controller
     {
         $this->authenticatePrint($request);
 
-        try {
-            $data = $this->reports->getPlanillaData($id);
-        } catch (RuntimeException $e) {
-            abort(404, $e->getMessage());
-        }
+        $query = http_build_query(array_filter([
+            'token' => $request->query('token'),
+            'tamano' => $request->query('tamano', 'legal'),
+            'orientacion' => $request->query('orientacion', 'landscape'),
+        ]));
 
-        return view('reportes.planilla', $data);
+        return redirect("/reportes/planillas/{$id}/pdf?{$query}");
     }
 
     public function imprimirBoletas(Request $request, int $id)
     {
         $this->authenticatePrint($request);
 
-        try {
-            $data = $this->reports->getPlanillaData($id);
-        } catch (RuntimeException $e) {
-            abort(404, $e->getMessage());
-        }
+        $query = http_build_query(array_filter([
+            'token' => $request->query('token'),
+        ]));
 
-        return view('reportes.boletas-todas', $data);
+        return redirect("/reportes/planillas/{$id}/boletas/pdf?{$query}");
     }
 
     public function imprimirBoleta(Request $request, int $id, int $detalleId)
     {
         $this->authenticatePrint($request);
 
-        try {
-            $data = $this->reports->getBoletaData($id, $detalleId);
-        } catch (RuntimeException $e) {
-            abort(404, $e->getMessage());
-        }
+        $query = http_build_query(array_filter([
+            'token' => $request->query('token'),
+        ]));
 
-        return view('reportes.boleta', $data);
+        return redirect("/reportes/planillas/{$id}/boletas/{$detalleId}/pdf?{$query}");
     }
 
     public function pdfPlanilla(Request $request, int $id)
@@ -67,11 +63,20 @@ class PlanillaReportController extends Controller
             abort(404, $e->getMessage());
         }
 
-        $slug = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $data['planilla']->TITULO ?? 'planilla');
-        $pdf = Pdf::loadView('reportes.planilla', $data)
-            ->setPaper('legal', 'landscape');
+        $formato = $this->resolvePrintFormat($request);
+        $data = array_merge($data, $formato);
 
-        return $pdf->download("planilla_{$id}_{$slug}.pdf");
+        $slug = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $data['planilla']->TITULO ?? 'planilla');
+        $pdf = Pdf::loadView('reportes.planilla-document', $data)
+            ->setPaper($formato['tamano'], $formato['orientacion']);
+
+        $filename = "planilla_{$id}_{$slug}.pdf";
+
+        if ($request->boolean('download')) {
+            return $pdf->download($filename);
+        }
+
+        return $pdf->stream($filename);
     }
 
     public function pdfBoletas(Request $request, int $id)
@@ -85,10 +90,16 @@ class PlanillaReportController extends Controller
         }
 
         $slug = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $data['planilla']->TITULO ?? 'boletas');
-        $pdf = Pdf::loadView('reportes.boletas-todas', $data)
+        $pdf = Pdf::loadView('reportes.boletas-document', $data)
             ->setPaper('letter', 'portrait');
 
-        return $pdf->download("boletas_{$id}_{$slug}.pdf");
+        $filename = "boletas_{$id}_{$slug}.pdf";
+
+        if ($request->boolean('download')) {
+            return $pdf->download($filename);
+        }
+
+        return $pdf->stream($filename);
     }
 
     public function pdfBoleta(Request $request, int $id, int $detalleId)
@@ -102,10 +113,16 @@ class PlanillaReportController extends Controller
         }
 
         $nombre = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $data['detalle']->NOM_EMPLEADO ?? 'empleado');
-        $pdf = Pdf::loadView('reportes.boleta', $data)
+        $pdf = Pdf::loadView('reportes.boleta-document', $data)
             ->setPaper('letter', 'portrait');
 
-        return $pdf->download("boleta_{$id}_{$nombre}.pdf");
+        $filename = "boleta_{$id}_{$nombre}.pdf";
+
+        if ($request->boolean('download')) {
+            return $pdf->download($filename);
+        }
+
+        return $pdf->stream($filename);
     }
 
     protected function authenticatePrint(Request $request): void
@@ -125,5 +142,29 @@ class PlanillaReportController extends Controller
         }
 
         Auth::login($accessToken->tokenable);
+    }
+
+    /**
+     * @return array{tamano: string, orientacion: string, paperSize: string, paperOrientation: string}
+     */
+    protected function resolvePrintFormat(Request $request): array
+    {
+        $tamano = strtolower((string) $request->query('tamano', 'legal'));
+        $permitidos = ['letter', 'legal', 'a4', 'tabloid'];
+        if (!in_array($tamano, $permitidos, true)) {
+            $tamano = 'legal';
+        }
+
+        $orientacion = strtolower((string) $request->query('orientacion', 'landscape'));
+        if (!in_array($orientacion, ['landscape', 'portrait'], true)) {
+            $orientacion = 'landscape';
+        }
+
+        return [
+            'tamano' => $tamano,
+            'orientacion' => $orientacion,
+            'paperSize' => $tamano,
+            'paperOrientation' => $orientacion,
+        ];
     }
 }

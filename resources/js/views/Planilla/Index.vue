@@ -99,7 +99,7 @@
             <template v-if="hasDetalles">
               <button data-no-lock @click="imprimirPlanilla" :disabled="isBusy()" class="text-xs bg-slate-800 hover:bg-slate-900 text-white rounded px-3 py-1.5 font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
                 <span v-if="isLoading('print-planilla')" class="btn-spinner !h-3 !w-3"></span>
-                {{ isLoading('print-planilla') ? 'Generando…' : 'Imprimir Planilla' }}
+                {{ isLoading('print-planilla') ? 'Generando…' : 'Ver PDF Planilla' }}
               </button>
               <button data-no-lock @click="descargarPdfPlanilla" :disabled="isBusy()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded px-3 py-1.5 font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
                 <span v-if="isLoading('pdf-planilla')" class="btn-spinner !h-3 !w-3"></span>
@@ -373,12 +373,57 @@ import {
 const {
   reportLoading,
   reportMessage,
-  openPrintWhenReady,
+  openPdfViewWhenReady,
   downloadFileWhenReady,
   isLoading,
   isBusy,
   toast,
 } = usePlanillaReports();
+
+const UMBRAL_COLUMNAS_PLANILLA = 12;
+
+const opcionesTamanoHojaPlanilla = [
+  { value: 'letter', label: 'Carta (Letter)' },
+  { value: 'legal', label: 'Oficio (Legal)' },
+  { value: 'a4', label: 'A4' },
+  { value: 'tabloid', label: 'Tabloide 11×17 (tablas muy grandes)' },
+];
+
+const columnasPlanilla = computed(() => (
+  5
+  + conceptosIngreso.value.length
+  + 1
+  + conceptosDescuento.value.length
+  + 2
+  + conceptosPatronal.value.length
+));
+
+const resolverFormatoPlanilla = async () => {
+  const cols = columnasPlanilla.value;
+  let tamano = cols > UMBRAL_COLUMNAS_PLANILLA ? 'tabloid' : 'legal';
+
+  if (cols > UMBRAL_COLUMNAS_PLANILLA) {
+    const values = await dialog.form({
+      title: 'Tamaño de hoja',
+      message: `Esta planilla tiene ${cols} columnas. Elija el tamaño de papel (siempre en horizontal):`,
+      variant: 'info',
+      confirmText: 'Continuar',
+      fields: [
+        {
+          name: 'tamano',
+          type: 'select',
+          label: 'Tamaño de hoja',
+          defaultValue: tamano,
+          options: opcionesTamanoHojaPlanilla,
+        },
+      ],
+    });
+    if (!values) return null;
+    tamano = values.tamano;
+  }
+
+  return { tamano, orientacion: 'landscape' };
+};
 
 const planillas     = ref([]);
 const selectedPayroll = ref(null);
@@ -715,36 +760,42 @@ const closeDetails = () => {
   conceptosPatronal.value = [];
 };
 
-const imprimirPlanilla = () => {
+const imprimirPlanilla = async () => {
   if (!selectedPayroll.value) return;
-  openPrintWhenReady(`/reportes/planillas/${selectedPayroll.value.ID_PLANILLA}/imprimir`, {
+  const formato = await resolverFormatoPlanilla();
+  if (!formato) return;
+  openPdfViewWhenReady(`/reportes/planillas/${selectedPayroll.value.ID_PLANILLA}/pdf`, {
     key: 'print-planilla',
-    label: 'planilla para imprimir',
+    label: 'PDF de planilla',
+    params: formato,
   });
 };
 
 const imprimirBoletas = () => {
   if (!selectedPayroll.value) return;
-  openPrintWhenReady(`/reportes/planillas/${selectedPayroll.value.ID_PLANILLA}/boletas`, {
+  openPdfViewWhenReady(`/reportes/planillas/${selectedPayroll.value.ID_PLANILLA}/boletas/pdf`, {
     key: 'print-boletas',
-    label: 'boletas para imprimir',
+    label: 'PDF de boletas',
   });
 };
 
 const imprimirBoleta = (det) => {
   if (!selectedPayroll.value || !det?.ID_DETALLEPLANILLA) return;
-  openPrintWhenReady(
-    `/reportes/planillas/${selectedPayroll.value.ID_PLANILLA}/boletas/${det.ID_DETALLEPLANILLA}`,
-    { key: `print-boleta-${det.ID_DETALLEPLANILLA}`, label: 'boleta para imprimir' }
+  openPdfViewWhenReady(
+    `/reportes/planillas/${selectedPayroll.value.ID_PLANILLA}/boletas/${det.ID_DETALLEPLANILLA}/pdf`,
+    { key: `print-boleta-${det.ID_DETALLEPLANILLA}`, label: 'PDF de boleta' }
   );
 };
 
-const descargarPdfPlanilla = () => {
+const descargarPdfPlanilla = async () => {
   if (!selectedPayroll.value) return;
+  const formato = await resolverFormatoPlanilla();
+  if (!formato) return;
   downloadFileWhenReady(`/reportes/planillas/${selectedPayroll.value.ID_PLANILLA}/pdf`, {
     key: 'pdf-planilla',
     label: 'PDF de planilla',
     fallbackName: 'planilla.pdf',
+    params: { ...formato, download: '1' },
   });
 };
 
@@ -754,6 +805,7 @@ const descargarPdfBoletas = () => {
     key: 'pdf-boletas',
     label: 'PDF de boletas',
     fallbackName: 'boletas.pdf',
+    params: { download: '1' },
   });
 };
 
@@ -765,6 +817,7 @@ const descargarPdfBoleta = (det) => {
       key: `pdf-boleta-${det.ID_DETALLEPLANILLA}`,
       label: 'PDF de boleta',
       fallbackName: 'boleta.pdf',
+      params: { download: '1' },
     }
   );
 };

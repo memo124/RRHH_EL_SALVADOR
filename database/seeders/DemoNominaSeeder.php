@@ -94,7 +94,19 @@ class DemoNominaSeeder extends Seeder
             'URL_LOGO' => '/images/logos/empresa-1.svg',
             'TELEFONO' => '2234-5600',
             'DIRECCION' => 'Calle Principal #100, San Salvador',
+            'NOMBRE_DUENO' => 'Roberto García Pineda',
+            'DUI_DUENO' => '01234567-8',
         ]);
+
+        $firmantesDemo = [
+            ['ID_FIRMANTE' => 1, 'ID_EMPRESA' => 1, 'NOMBRE' => 'Roberto García Pineda', 'CARGO' => 'Representante Legal', 'DUI' => '01234567-8', 'ORDEN' => 1, 'ESACTIVO' => true],
+            ['ID_FIRMANTE' => 2, 'ID_EMPRESA' => 1, 'NOMBRE' => 'Laura Méndez de García', 'CARGO' => 'Gerente de Recursos Humanos', 'DUI' => '02345678-9', 'ORDEN' => 2, 'ESACTIVO' => true],
+            ['ID_FIRMANTE' => 3, 'ID_EMPRESA' => 2, 'NOMBRE' => 'Carlos Eduardo Rivas', 'CARGO' => 'Representante Legal', 'DUI' => '03456789-0', 'ORDEN' => 1, 'ESACTIVO' => true],
+            ['ID_FIRMANTE' => 4, 'ID_EMPRESA' => 2, 'NOMBRE' => 'María Elena Rodríguez', 'CARGO' => 'Jefe de Nómina', 'DUI' => '04567890-1', 'ORDEN' => 2, 'ESACTIVO' => true],
+        ];
+        foreach ($firmantesDemo as $firmante) {
+            DB::table('EMPRESA_FIRMANTE')->updateOrInsert(['ID_FIRMANTE' => $firmante['ID_FIRMANTE']], $firmante);
+        }
 
         $empleados = [
             [

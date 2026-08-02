@@ -1,10 +1,12 @@
 import * as XLSX from 'xlsx';
 import {
+  buildPlanillaSubtotalRow,
   collectConceptosDescuento,
   collectConceptosIngreso,
   collectConceptosPatronal,
   getDescuentoMonto,
   getPatronalMonto,
+  groupDetallesByAreaDepartamento,
   totalConceptoDescuento,
   totalConceptoIngreso,
   totalConceptoPatronal,
@@ -20,13 +22,30 @@ export function downloadXlsx(sheetRows, filename, sheetName = 'Planilla') {
   XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
 }
 
+function buildEmployeeRow(det, rowNum, ingresos, descuentos, patronal) {
+  return [
+    rowNum,
+    det.NOM_EMPLEADO,
+    det.TIPO_CONTRATACION_NOM || '',
+    det.CARGO || '',
+    Number(det.DIASLABORADOS ?? 0),
+    ...ingresos.map((ing) => Number(det[ing.key] ?? 0)),
+    Number(det.TOTAL_DEVENGADO ?? 0),
+    ...descuentos.map((c) => getDescuentoMonto(det, c)),
+    Number(det.TOTAL_DEDUCCIONES ?? 0),
+    Number(det.LIQUIDO_A_RECIBIR ?? 0),
+    ...patronal.map((p) => getPatronalMonto(det, p)),
+  ];
+}
+
 /**
- * Construye filas de planilla para Excel con ingresos y descuentos dinámicos.
+ * Construye filas de planilla para Excel agrupadas por área y departamento.
  */
 export function buildPlanillaSheetRows(detalles, conceptosDescuento = [], totales = null, conceptosIngreso = [], conceptosPatronal = []) {
   const ingresos = collectConceptosIngreso(detalles, conceptosIngreso);
   const descuentos = collectConceptosDescuento(detalles, conceptosDescuento);
   const patronal = collectConceptosPatronal(detalles, conceptosPatronal);
+  const grupos = groupDetallesByAreaDepartamento(detalles);
 
   const headers = [
     '#',
@@ -43,38 +62,42 @@ export function buildPlanillaSheetRows(detalles, conceptosDescuento = [], totale
   ];
 
   const rows = [headers];
+  let rowNum = 0;
 
-  detalles.forEach((det, i) => {
-    rows.push([
-      i + 1,
-      det.NOM_EMPLEADO,
-      det.TIPO_CONTRATACION_NOM || '',
-      det.CARGO || '',
-      Number(det.DIASLABORADOS ?? 0),
-      ...ingresos.map((ing) => Number(det[ing.key] ?? 0)),
-      Number(det.TOTAL_DEVENGADO ?? 0),
-      ...descuentos.map((c) => getDescuentoMonto(det, c)),
-      Number(det.TOTAL_DEDUCCIONES ?? 0),
-      Number(det.LIQUIDO_A_RECIBIR ?? 0),
-      ...patronal.map((p) => getPatronalMonto(det, p)),
-    ]);
-  });
+  for (const grupoArea of grupos) {
+    rows.push([`ÁREA: ${grupoArea.area}`]);
+    for (const grupoDepto of grupoArea.departamentos) {
+      rows.push([`Departamento: ${grupoDepto.departamento}`]);
+      for (const det of grupoDepto.detalles) {
+        rowNum += 1;
+        rows.push(buildEmployeeRow(det, rowNum, ingresos, descuentos, patronal));
+      }
+      rows.push(buildPlanillaSubtotalRow(
+        `Subtotal ${grupoDepto.departamento} (${grupoDepto.detalles.length} empleados)`,
+        grupoDepto.detalles,
+        ingresos,
+        descuentos,
+        patronal
+      ));
+    }
+    rows.push(buildPlanillaSubtotalRow(
+      `Subtotal área ${grupoArea.area} (${grupoArea.detalles.length} empleados)`,
+      grupoArea.detalles,
+      ingresos,
+      descuentos,
+      patronal
+    ));
+    rows.push([]);
+  }
 
   if (totales) {
-    rows.push([]);
-    rows.push([
-      'TOTALES',
-      '',
-      '',
-      '',
-      '',
-      ...ingresos.map((ing) => totalConceptoIngreso(detalles, ing.key)),
-      Number(totales.TOTAL_DEVENGADO ?? 0),
-      ...descuentos.map((c) => totalConceptoDescuento(detalles, c)),
-      Number(totales.TOTAL_DEDUCCIONES ?? 0),
-      Number(totales.LIQUIDO_A_RECIBIR ?? 0),
-      ...patronal.map((p) => totalConceptoPatronal(detalles, p)),
-    ]);
+    rows.push(buildPlanillaSubtotalRow(
+      `TOTALES (${totales.COUNT ?? detalles.length} empleados)`,
+      detalles,
+      ingresos,
+      descuentos,
+      patronal
+    ));
   }
 
   return rows;

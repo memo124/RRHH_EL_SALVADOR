@@ -35,7 +35,7 @@
       <div
         v-if="open"
         ref="panelRef"
-        class="fixed z-[100] rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg overflow-hidden"
+        class="fixed z-[10050] rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg overflow-hidden"
         :style="panelStyle"
       >
         <div v-if="searchable" class="p-2 border-b border-slate-200 dark:border-slate-700 flex gap-2">

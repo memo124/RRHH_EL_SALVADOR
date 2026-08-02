@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             DemoNominaMasivaSeeder::class,
             DemoQuincenalIsssSeeder::class,
             UsuarioSeeder::class,
+            PlantillaContratoSeeder::class,
         ]);
     }
 }

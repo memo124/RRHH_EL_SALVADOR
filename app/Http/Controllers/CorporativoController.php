@@ -31,6 +31,8 @@ class CorporativoController extends Controller
             'DIRECCION'       => 'nullable|string|max:500',
             'TELEFONO'        => 'nullable|string|max:25',
             'URL_LOGO'        => 'nullable|string|max:2048',
+            'NOMBRE_DUENO'    => 'nullable|string|max:200',
+            'DUI_DUENO'       => 'nullable|string|max:12',
         ]);
 
         $maxId = DB::table('EMPRESA')->max('ID_EMPRESA') ?? 0;
@@ -46,6 +48,8 @@ class CorporativoController extends Controller
             'DIRECCION'     => $request->DIRECCION,
             'TELEFONO'      => $request->TELEFONO,
             'URL_LOGO'      => $request->URL_LOGO,
+            'NOMBRE_DUENO'  => $request->NOMBRE_DUENO,
+            'DUI_DUENO'     => $request->DUI_DUENO,
             'EMPRESAACTIVA' => true,
         ]);
 
@@ -63,6 +67,8 @@ class CorporativoController extends Controller
             'DIRECCION'      => 'nullable|string|max:500',
             'TELEFONO'       => 'nullable|string|max:25',
             'URL_LOGO'       => 'nullable|string|max:2048',
+            'NOMBRE_DUENO'   => 'nullable|string|max:200',
+            'DUI_DUENO'      => 'nullable|string|max:12',
             'EMPRESAACTIVA'  => 'boolean',
         ]);
 
@@ -75,6 +81,8 @@ class CorporativoController extends Controller
             'DIRECCION'      => $request->DIRECCION,
             'TELEFONO'       => $request->TELEFONO,
             'URL_LOGO'       => $request->URL_LOGO,
+            'NOMBRE_DUENO'   => $request->NOMBRE_DUENO,
+            'DUI_DUENO'      => $request->DUI_DUENO,
             'EMPRESAACTIVA'  => $request->EMPRESAACTIVA ?? true,
         ]);
 
@@ -550,5 +558,77 @@ class CorporativoController extends Controller
     {
         DB::table('RUTA')->where('ID_RUTA', $id)->update(['ESACTIVA' => false]);
         return response()->json(['message' => 'Ruta inactivada correctamente.']);
+    }
+
+    // ─── FIRMANTES ────────────────────────────────────────────────────────────
+
+    public function indexFirmantes(Request $request)
+    {
+        $query = DB::table('EMPRESA_FIRMANTE')
+            ->join('EMPRESA', 'EMPRESA_FIRMANTE.ID_EMPRESA', '=', 'EMPRESA.ID_EMPRESA')
+            ->select('EMPRESA_FIRMANTE.*', 'EMPRESA.NOMBREEMPRESA')
+            ->orderBy('EMPRESA_FIRMANTE.ID_EMPRESA')
+            ->orderBy('EMPRESA_FIRMANTE.ORDEN');
+
+        if ($request->filled('ID_EMPRESA')) {
+            $query->where('EMPRESA_FIRMANTE.ID_EMPRESA', $request->ID_EMPRESA);
+        }
+
+        return $this->paginateQuery($query, $request, ['NOMBRE', 'CARGO', 'NOMBREEMPRESA']);
+    }
+
+    public function storeFirmante(Request $request)
+    {
+        $request->validate([
+            'ID_EMPRESA' => 'required|integer',
+            'NOMBRE'     => 'required|string|max:200',
+            'CARGO'      => 'nullable|string|max:150',
+            'DUI'        => 'nullable|string|max:12',
+            'ORDEN'      => 'integer|min:1',
+            'ESACTIVO'   => 'boolean',
+        ]);
+
+        $maxId = DB::table('EMPRESA_FIRMANTE')->max('ID_FIRMANTE') ?? 0;
+
+        DB::table('EMPRESA_FIRMANTE')->insert([
+            'ID_FIRMANTE' => $maxId + 1,
+            'ID_EMPRESA'  => $request->ID_EMPRESA,
+            'NOMBRE'      => $request->NOMBRE,
+            'CARGO'       => $request->CARGO,
+            'DUI'         => $request->DUI,
+            'ORDEN'       => $request->ORDEN ?? 1,
+            'ESACTIVO'    => $request->ESACTIVO ?? true,
+        ]);
+
+        return response()->json(['ID_FIRMANTE' => $maxId + 1], 201);
+    }
+
+    public function updateFirmante(Request $request, $id)
+    {
+        $request->validate([
+            'ID_EMPRESA' => 'required|integer',
+            'NOMBRE'     => 'required|string|max:200',
+            'CARGO'      => 'nullable|string|max:150',
+            'DUI'        => 'nullable|string|max:12',
+            'ORDEN'      => 'integer|min:1',
+            'ESACTIVO'   => 'boolean',
+        ]);
+
+        DB::table('EMPRESA_FIRMANTE')->where('ID_FIRMANTE', $id)->update([
+            'ID_EMPRESA' => $request->ID_EMPRESA,
+            'NOMBRE'     => $request->NOMBRE,
+            'CARGO'      => $request->CARGO,
+            'DUI'        => $request->DUI,
+            'ORDEN'      => $request->ORDEN ?? 1,
+            'ESACTIVO'   => $request->ESACTIVO ?? true,
+        ]);
+
+        return response()->json(['ID_FIRMANTE' => $id]);
+    }
+
+    public function destroyFirmante($id)
+    {
+        DB::table('EMPRESA_FIRMANTE')->where('ID_FIRMANTE', $id)->update(['ESACTIVO' => false]);
+        return response()->json(['message' => 'Firmante inactivado correctamente.']);
     }
 }

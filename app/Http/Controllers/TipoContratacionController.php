@@ -29,6 +29,10 @@ class TipoContratacionController extends Controller
             'APLICA_RENTA_FIJA' => 'boolean',
             'PORCENTAJE_RENTA_FIJA' => 'required_if:APLICA_RENTA_FIJA,true|numeric|min:0|max:100',
             'APLICA_INSAFORP' => 'boolean',
+            'APLICA_AGUINALDO' => 'boolean',
+            'APLICA_QUINCENA_25' => 'boolean',
+            'ANIOS_MINIMOS_QUINCENA_25' => 'nullable|integer|min:0|max:50',
+            'PORCENTAJE_QUINCENA_25' => 'nullable|numeric|min:0|max:100',
             'ESACTIVO' => 'boolean',
         ]);
 
@@ -45,6 +49,10 @@ class TipoContratacionController extends Controller
         $tipo->APLICA_RENTA_FIJA = $request->APLICA_RENTA_FIJA ?? false;
         $tipo->PORCENTAJE_RENTA_FIJA = $request->PORCENTAJE_RENTA_FIJA ?? 0.00;
         $tipo->APLICA_INSAFORP = $request->APLICA_INSAFORP ?? true;
+        $tipo->APLICA_AGUINALDO = $request->APLICA_AGUINALDO ?? false;
+        $tipo->APLICA_QUINCENA_25 = $request->APLICA_QUINCENA_25 ?? false;
+        $tipo->ANIOS_MINIMOS_QUINCENA_25 = $request->ANIOS_MINIMOS_QUINCENA_25 ?? 1;
+        $tipo->PORCENTAJE_QUINCENA_25 = $request->PORCENTAJE_QUINCENA_25 ?? 50.00;
         $tipo->ESACTIVO = $request->ESACTIVO ?? true;
         $tipo->save();
 
@@ -65,6 +73,10 @@ class TipoContratacionController extends Controller
             'APLICA_RENTA_FIJA' => 'boolean',
             'PORCENTAJE_RENTA_FIJA' => 'required_if:APLICA_RENTA_FIJA,true|numeric|min:0|max:100',
             'APLICA_INSAFORP' => 'boolean',
+            'APLICA_AGUINALDO' => 'boolean',
+            'APLICA_QUINCENA_25' => 'boolean',
+            'ANIOS_MINIMOS_QUINCENA_25' => 'nullable|integer|min:0|max:50',
+            'PORCENTAJE_QUINCENA_25' => 'nullable|numeric|min:0|max:100',
             'ESACTIVO' => 'boolean',
         ]);
 
@@ -77,6 +89,10 @@ class TipoContratacionController extends Controller
         $tipo->APLICA_RENTA_FIJA = $request->APLICA_RENTA_FIJA ?? false;
         $tipo->PORCENTAJE_RENTA_FIJA = $request->PORCENTAJE_RENTA_FIJA ?? 0.00;
         $tipo->APLICA_INSAFORP = $request->APLICA_INSAFORP ?? true;
+        $tipo->APLICA_AGUINALDO = $request->APLICA_AGUINALDO ?? false;
+        $tipo->APLICA_QUINCENA_25 = $request->APLICA_QUINCENA_25 ?? false;
+        $tipo->ANIOS_MINIMOS_QUINCENA_25 = $request->ANIOS_MINIMOS_QUINCENA_25 ?? 1;
+        $tipo->PORCENTAJE_QUINCENA_25 = $request->PORCENTAJE_QUINCENA_25 ?? 50.00;
         $tipo->ESACTIVO = $request->ESACTIVO ?? true;
         $tipo->save();
 

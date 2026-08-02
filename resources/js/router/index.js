@@ -17,6 +17,7 @@ import IncapacidadIndex from '../views/Incapacidad/Index.vue';
 import LiquidacionesIndex from '../views/Liquidaciones/Index.vue';
 import PeriodosIndex from '../views/Periodos/Index.vue';
 import ParametrosAguinaldoIndex from '../views/ParametrosAguinaldo/Index.vue';
+import ContratosIndex from '../views/Contratos/Index.vue';
 
 const routes = [
     {
@@ -42,6 +43,18 @@ const routes = [
         name: 'Empleados',
         component: EmpleadosIndex,
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/contratos',
+        name: 'Contratos',
+        component: ContratosIndex,
+        meta: { requiresAuth: true, tab: 'contratos' }
+    },
+    {
+        path: '/contratos/plantillas',
+        name: 'ContratosPlantillas',
+        component: ContratosIndex,
+        meta: { requiresAuth: true, tab: 'plantillas' }
     },
     {
         path: '/planilla',

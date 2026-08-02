@@ -35,4 +35,19 @@ class Empresa extends Model
     {
         return $this->hasMany(Planilla::class, 'ID_EMPRESA', 'ID_EMPRESA');
     }
+
+    public function firmantes(): HasMany
+    {
+        return $this->hasMany(EmpresaFirmante::class, 'ID_EMPRESA', 'ID_EMPRESA');
+    }
+
+    public function plantillasContrato(): HasMany
+    {
+        return $this->hasMany(PlantillaContrato::class, 'ID_EMPRESA', 'ID_EMPRESA');
+    }
+
+    public function contratos(): HasMany
+    {
+        return $this->hasMany(Contrato::class, 'ID_EMPRESA', 'ID_EMPRESA');
+    }
 }

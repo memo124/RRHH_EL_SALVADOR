@@ -19,11 +19,6 @@
         .empresa-contact { font-size: 10px; margin-top: 4px; }
         .meta { margin-bottom: 12px; line-height: 1.5; }
         .meta span { display: inline-block; margin-right: 18px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; vertical-align: top; }
-        th { background: #f1f5f9; font-size: 10px; text-transform: uppercase; }
-        td.num, th.num { text-align: right; white-space: nowrap; }
-        tfoot td { font-weight: bold; background: #f8fafc; }
         .section { margin-top: 16px; }
         .boleta-page { page-break-after: always; border: 1px solid #e2e8f0; padding: 16px; margin-bottom: 20px; }
         .boleta-page:last-child { page-break-after: auto; }
@@ -37,6 +32,7 @@
             .boleta-page { border: none; margin: 0; padding: 0; }
         }
     </style>
+    @include('reportes.partials.report-table-styles')
     @stack('styles')
 </head>
 <body>

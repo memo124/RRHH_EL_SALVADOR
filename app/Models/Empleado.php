@@ -91,4 +91,9 @@ class Empleado extends Model
     {
         return $this->hasMany(Empleado::class, 'ID_JEFE_INMEDIATO', 'ID_EMPLEADO');
     }
+
+    public function contratos(): HasMany
+    {
+        return $this->hasMany(Contrato::class, 'ID_EMPLEADO', 'ID_EMPLEADO');
+    }
 }

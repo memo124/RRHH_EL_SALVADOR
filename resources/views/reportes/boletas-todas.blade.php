@@ -7,7 +7,6 @@
 @endpush
 
 @section('content')
-@include('reportes.partials.empresa-header')
 <h2>Boletas de Pago — {{ $planilla->TITULO }}</h2>
 <p class="meta muted">Periodo: {{ $planilla->CALPERIODO }} · {{ $totales['COUNT'] }} empleados</p>
 

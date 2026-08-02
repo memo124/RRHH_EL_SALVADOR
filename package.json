@@ -19,6 +19,8 @@
     },
     "dependencies": {
         "@tanstack/vue-virtual": "^3.13.34",
+        "@vueup/vue-quill": "^1.5.5",
+        "quill": "^2.0.3",
         "xlsx": "^0.18.5"
     }
 }

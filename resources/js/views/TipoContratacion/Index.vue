@@ -152,6 +152,26 @@
                 <input type="checkbox" v-model="form.ESACTIVO" class="rounded text-indigo-600 focus:ring-indigo-500" />
                 <span>Activo</span>
               </label>
+              <label class="flex items-center space-x-3 text-sm text-slate-700 dark:text-slate-300">
+                <input type="checkbox" v-model="form.APLICA_AGUINALDO" class="rounded text-indigo-600 focus:ring-indigo-500" />
+                <span>Aplica aguinaldo en contratos</span>
+              </label>
+              <label class="flex items-center space-x-3 text-sm text-slate-700 dark:text-slate-300">
+                <input type="checkbox" v-model="form.APLICA_QUINCENA_25" class="rounded text-indigo-600 focus:ring-indigo-500" />
+                <span>Aplica quincena 25</span>
+              </label>
+            </div>
+            <div v-if="form.APLICA_QUINCENA_25" class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Años mínimos quincena 25</label>
+                <input v-model.number="form.ANIOS_MINIMOS_QUINCENA_25" type="number" min="0" max="50"
+                  class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">% del salario (quincena 25)</label>
+                <input v-model="form.PORCENTAJE_QUINCENA_25" type="number" step="0.01" min="0" max="100"
+                  class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700" />
+              </div>
             </div>
 
             <!-- Validation Error Alert -->
@@ -219,6 +239,10 @@ const form = ref({
   APLICA_RENTA_FIJA: false,
   PORCENTAJE_RENTA_FIJA: 0,
   APLICA_INSAFORP: true,
+  APLICA_AGUINALDO: false,
+  APLICA_QUINCENA_25: false,
+  ANIOS_MINIMOS_QUINCENA_25: 1,
+  PORCENTAJE_QUINCENA_25: 50,
   ESACTIVO: true
 });
 
@@ -239,6 +263,10 @@ const openCreateModal = () => {
     APLICA_RENTA_FIJA: false,
     PORCENTAJE_RENTA_FIJA: 10.00,
     APLICA_INSAFORP: true,
+    APLICA_AGUINALDO: false,
+    APLICA_QUINCENA_25: false,
+    ANIOS_MINIMOS_QUINCENA_25: 1,
+    PORCENTAJE_QUINCENA_25: 50,
     ESACTIVO: true
   };
   showModal.value = true;

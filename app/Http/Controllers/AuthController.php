@@ -154,11 +154,21 @@ class AuthController extends Controller
                 ]
             ];
             $menu[] = [
-                'group' => 'Empleados y Contratos',
+                'group' => 'Empleados',
                 'icon' => 'users',
                 'options' => [
                     ['name' => 'Empleados', 'route' => '/empleados'],
                     ['name' => 'Tipos de Contratación', 'route' => '/tipo-contratacion'],
+                ]
+            ];
+        }
+        if ($permissions->contains('CONTRATO_VIEW')) {
+            $menu[] = [
+                'group' => 'Contratos Laborales',
+                'icon' => 'file-text',
+                'options' => [
+                    ['name' => 'Contratos', 'route' => '/contratos'],
+                    ['name' => 'Plantillas de Contrato', 'route' => '/contratos/plantillas'],
                 ]
             ];
         }

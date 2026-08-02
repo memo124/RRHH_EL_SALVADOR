@@ -24,7 +24,14 @@ class CatalogSelectController extends Controller
 
         foreach ($config['filters'] ?? [] as $param => $column) {
             if ($request->filled($param)) {
-                $query->where($column, $request->input($param));
+                if ($type === 'plantillas-contrato' && $param === 'ID_EMPRESA') {
+                    $query->where(function ($q) use ($column, $request, $param) {
+                        $q->where($column, $request->input($param))
+                            ->orWhereNull($column);
+                    });
+                } else {
+                    $query->where($column, $request->input($param));
+                }
             }
         }
 
@@ -246,6 +253,15 @@ class CatalogSelectController extends Controller
                 'label' => 'TIPOINGRESO',
                 'search' => ['TIPOINGRESO'],
                 'where' => ['ESACTIVO' => true],
+            ],
+            'plantillas-contrato' => [
+                'table' => 'PLANTILLA_CONTRATO',
+                'id' => 'ID_PLANTILLA',
+                'label' => 'NOMBRE',
+                'columns' => ['NOMBRE', 'DESCRIPCION'],
+                'search' => ['NOMBRE', 'DESCRIPCION'],
+                'where' => ['ESACTIVO' => true],
+                'filters' => ['ID_EMPRESA' => 'ID_EMPRESA'],
             ],
         ];
 

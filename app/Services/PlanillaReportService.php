@@ -96,7 +96,77 @@ class PlanillaReportService
 
         $empresaLogo = $this->logos->resolveDataUri((int) $planilla->ID_EMPRESA);
 
-        return compact('planilla', 'detalles', 'totales', 'conceptosDescuento', 'conceptosIngreso', 'conceptosPatronal', 'empresaLogo');
+        $firmantes = DB::table('EMPRESA_FIRMANTE')
+            ->where('ID_EMPRESA', $planilla->ID_EMPRESA)
+            ->where('ESACTIVO', true)
+            ->orderBy('ORDEN')
+            ->get();
+
+        $grupos = $this->groupDetallesByAreaDepartamento($detalles);
+
+        return compact('planilla', 'detalles', 'totales', 'conceptosDescuento', 'conceptosIngreso', 'conceptosPatronal', 'empresaLogo', 'firmantes', 'grupos');
+    }
+
+    /**
+     * Agrupa detalles por área y departamento (orden alfabético).
+     *
+     * @return array<int, array{area: string, departamentos: array<int, array{departamento: string, detalles: \Illuminate\Support\Collection}>, detalles: \Illuminate\Support\Collection}>
+     */
+    public function groupDetallesByAreaDepartamento($detalles): array
+    {
+        $sinArea = 'Sin área';
+        $sinDepto = 'Sin departamento';
+        $grouped = [];
+
+        foreach ($detalles as $det) {
+            $area = trim((string) ($det->AREA ?? '')) ?: $sinArea;
+            $depto = trim((string) ($det->DEPARTAMENTO ?? '')) ?: $sinDepto;
+            $grouped[$area][$depto][] = $det;
+        }
+
+        ksort($grouped, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $result = [];
+        foreach ($grouped as $area => $departamentos) {
+            ksort($departamentos, SORT_NATURAL | SORT_FLAG_CASE);
+            $deptoList = [];
+            $areaDetalles = collect();
+
+            foreach ($departamentos as $depto => $items) {
+                $coll = collect($items);
+                $deptoList[] = [
+                    'departamento' => $depto,
+                    'detalles' => $coll,
+                ];
+                $areaDetalles = $areaDetalles->concat($coll);
+            }
+
+            $result[] = [
+                'area' => $area,
+                'departamentos' => $deptoList,
+                'detalles' => $areaDetalles,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Totales numéricos para un subconjunto de detalles (subtotales por grupo).
+     */
+    public function computeGroupTotals($detalles): array
+    {
+        $detalles = collect($detalles);
+
+        return [
+            'COUNT' => $detalles->count(),
+            'TOTAL_DEVENGADO' => (float) $detalles->sum('TOTAL_DEVENGADO'),
+            'TOTAL_DEDUCCIONES' => (float) $detalles->sum('TOTAL_DEDUCCIONES'),
+            'LIQUIDO_A_RECIBIR' => (float) $detalles->sum('LIQUIDO_A_RECIBIR'),
+            'AFP_PATRONAL' => (float) $detalles->sum('AFP_PATRONAL'),
+            'ISSS_PATRONAL' => (float) $detalles->sum('ISSS_PATRONAL'),
+            'INSAFORP_PATRONAL' => (float) $detalles->sum('INSAFORP_PATRONAL'),
+        ];
     }
 
     /**
