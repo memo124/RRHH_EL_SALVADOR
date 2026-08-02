@@ -5,6 +5,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/app/error-journal
 /vendor
 .env
 .env.backup

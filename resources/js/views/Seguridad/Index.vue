@@ -131,7 +131,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              <tr v-for="p in permisos" :key="p.ID_PERMISO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+              <tr v-for="p in permisosCatalogo" :key="p.ID_PERMISO" class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                 <td class="px-6 py-4 text-slate-500">{{ p.ID_PERMISO }}</td>
                 <td class="px-6 py-4">
                   <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs font-mono font-bold">{{ p.CODIGO_PERMISO }}</span>
@@ -141,6 +141,58 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ══ TAB: ERRORES DEL SISTEMA ═════════════════════════════════════════ -->
+      <div v-if="activeTab === 'errores'" class="space-y-4">
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4 text-sm text-slate-600 dark:text-slate-300">
+          Se conservan hasta <strong>3 archivos</strong> (rotación cada <strong>3 días</strong>).
+          Los detalles técnicos no se muestran al usuario final; aquí puede consultarlos con referencia legible.
+        </div>
+
+        <SkeletonTable v-if="loadingErrores" />
+        <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="table-shell overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 font-semibold text-sm">Archivos</div>
+            <div class="divide-y divide-slate-200 dark:divide-slate-700">
+              <button
+                v-for="file in errorFiles"
+                :key="file.name"
+                type="button"
+                @click="loadErrorJournal(file.name)"
+                :class="selectedErrorFile === file.name ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
+                class="w-full text-left px-4 py-3 text-sm transition-colors"
+              >
+                <div class="font-semibold text-slate-900 dark:text-white">{{ file.name }}</div>
+                <div class="text-xs text-slate-500 mt-1">{{ file.entries_count }} eventos</div>
+              </button>
+              <div v-if="!errorFiles.length" class="px-4 py-6 text-sm text-slate-500">Sin errores registrados.</div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 table-shell overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 font-semibold text-sm">
+              Detalle {{ selectedErrorFile ? `— ${selectedErrorFile}` : '' }}
+            </div>
+            <div v-if="!selectedErrorFile" class="p-6 text-sm text-slate-500">Seleccione un archivo para ver los errores.</div>
+            <div v-else-if="loadingErrorDetail" class="p-6 text-sm text-slate-500 animate-pulse">Cargando…</div>
+            <div v-else class="divide-y divide-slate-200 dark:divide-slate-700 max-h-[70vh] overflow-y-auto">
+              <div v-for="entry in errorEntries" :key="entry.referencia + entry.fecha" class="p-4 space-y-2">
+                <div class="flex flex-wrap gap-2 items-center">
+                  <span class="font-mono text-xs bg-rose-50 text-rose-700 px-2 py-0.5 rounded">{{ entry.referencia }}</span>
+                  <span class="text-xs text-slate-500">{{ entry.fecha }}</span>
+                </div>
+                <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ entry.resumen }}</p>
+                <p class="text-xs text-slate-500">{{ entry.tipo }} · {{ entry.ubicacion }}</p>
+                <p class="text-xs text-slate-600 dark:text-slate-300"><strong>Petición:</strong> {{ entry.peticion }} · Usuario #{{ entry.usuario_id ?? '—' }} · {{ entry.ip }}</p>
+                <ul v-if="entry.trace?.length" class="text-xs font-mono text-slate-500 space-y-1 mt-2">
+                  <li v-for="line in entry.trace" :key="line">{{ line }}</li>
+                </ul>
+              </div>
+              <div v-if="!errorEntries.length" class="p-6 text-sm text-slate-500">Este archivo no tiene eventos.</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -224,7 +276,7 @@
           <form v-submit-lock="savePermissions" class="p-6 space-y-4">
             <p class="text-xs text-slate-500">Seleccione permisos directos adicionales para este usuario (complementan los del rol).</p>
             <div class="grid grid-cols-2 gap-3 max-h-[45vh] overflow-y-auto p-1">
-              <label v-for="perm in permisos" :key="perm.ID_PERMISO" class="flex items-start space-x-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <label v-for="perm in permisosCatalogo" :key="perm.ID_PERMISO" class="flex items-start space-x-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <input type="checkbox" :value="perm.ID_PERMISO" v-model="selectedUserPermissions" class="rounded text-indigo-600 focus:ring-indigo-500 mt-0.5" />
                 <div>
                   <span class="font-mono font-bold text-xs text-indigo-600 block">{{ perm.CODIGO_PERMISO }}</span>
@@ -291,7 +343,7 @@
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3 max-h-[45vh] overflow-y-auto p-1">
-              <label v-for="perm in permisos" :key="perm.ID_PERMISO" class="flex items-start space-x-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700/30">
+              <label v-for="perm in permisosCatalogo" :key="perm.ID_PERMISO" class="flex items-start space-x-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700/30">
                 <input type="checkbox" :value="perm.ID_PERMISO" v-model="selectedRolPermissions" class="rounded text-indigo-600 focus:ring-indigo-500 mt-0.5" />
                 <div>
                   <span class="font-mono font-bold text-xs text-indigo-600 block">{{ perm.CODIGO_PERMISO }}</span>
@@ -311,7 +363,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import DashboardLayout from '../Dashboard.vue';
 import SkeletonTable from '../../components/SkeletonTable.vue';
 import AppModalShell from '../../components/AppModalShell.vue';
@@ -319,18 +371,39 @@ import PaginationBar from '../../components/PaginationBar.vue';
 import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
+import { useToast } from '../../composables/useToast';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { SI_NO_BOOL_OPTIONS, ACTIVO_BOOL_OPTIONS } from '../../utils/staticSelectOptions';
 
-const tabs = [
-  { key: 'usuarios', label: 'Usuarios' },
-  { key: 'roles',    label: 'Roles' },
-  { key: 'permisos', label: 'Catálogo de Permisos' },
-];
+const toast = useToast();
+
+const tabs = computed(() => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const perms = Array.isArray(user.permissions) ? user.permissions : [];
+  const items = [
+    { key: 'usuarios', label: 'Usuarios' },
+    { key: 'roles', label: 'Roles' },
+    { key: 'permisos', label: 'Catálogo de Permisos' },
+  ];
+  if (perms.includes('ERROR_JOURNAL_VIEW')) {
+    items.push({ key: 'errores', label: 'Errores del sistema' });
+  }
+  return items;
+});
 
 const activeTab = ref('usuarios');
 const permisos  = ref([]);
+
+const permisosCatalogo = computed(() =>
+  (Array.isArray(permisos.value) ? permisos.value : []).filter((p) => p && p.ID_PERMISO != null)
+);
 const rolesCatalog = ref([]);
 const loadingPermisos = ref(false);
+const errorFiles = ref([]);
+const errorEntries = ref([]);
+const selectedErrorFile = ref('');
+const loadingErrores = ref(false);
+const loadingErrorDetail = ref(false);
 
 const {
   items: usuarios,
@@ -359,6 +432,7 @@ const {
 const loading = computed(() => {
   if (activeTab.value === 'usuarios') return loadingUsuarios.value;
   if (activeTab.value === 'roles') return loadingRoles.value;
+  if (activeTab.value === 'errores') return loadingErrores.value;
   return loadingPermisos.value;
 });
 
@@ -386,19 +460,53 @@ const selectedRolPermissions= ref([]);
 const loadPermisos = async () => {
   loadingPermisos.value = true;
   try {
-    permisos.value = (await api.get('/permisos-list')).data;
+    const res = await api.get('/permisos-list');
+    const payload = res.data;
+    permisos.value = Array.isArray(payload) ? payload : (payload?.data ?? []);
   } catch (err) {
-    console.error(err);
+    permisos.value = [];
+    toast.error('Error al cargar permisos', getApiErrorMessage(err));
   } finally {
     loadingPermisos.value = false;
+  }
+};
+
+const loadErrorFiles = async () => {
+  loadingErrores.value = true;
+  try {
+    const res = await api.get('/error-journal');
+    errorFiles.value = res.data.files ?? [];
+    if (!selectedErrorFile.value && errorFiles.value.length) {
+      await loadErrorJournal(errorFiles.value[errorFiles.value.length - 1].name);
+    }
+  } catch (err) {
+    toast.error('Error al cargar bitácora', getApiErrorMessage(err));
+  } finally {
+    loadingErrores.value = false;
+  }
+};
+
+const loadErrorJournal = async (filename) => {
+  selectedErrorFile.value = filename;
+  loadingErrorDetail.value = true;
+  try {
+    const res = await api.get(`/error-journal/${filename}`);
+    errorEntries.value = res.data.entries ?? [];
+  } catch (err) {
+    errorEntries.value = [];
+    toast.error('Error al leer archivo', getApiErrorMessage(err));
+  } finally {
+    loadingErrorDetail.value = false;
   }
 };
 
 const loadRolesCatalog = async () => {
   try {
     const res = await api.get('/roles', { params: { per_page: 200 } });
-    rolesCatalog.value = res.data.data ?? res.data;
+    const payload = res.data;
+    rolesCatalog.value = (Array.isArray(payload) ? payload : (payload?.data ?? [])).filter((r) => r && r.ID_ROL != null);
   } catch (err) {
+    rolesCatalog.value = [];
     console.error(err);
   }
 };
@@ -408,6 +516,10 @@ const loadData = async () => {
 };
 
 onMounted(loadData);
+
+watch(activeTab, (tab) => {
+  if (tab === 'errores') loadErrorFiles();
+});
 
 // ── Usuario handlers ──────────────────────────────────────────────────────────
 const openCreateUserModal = () => {
@@ -420,7 +532,7 @@ const openCreateUserModal = () => {
 const editUsuario = (u) => {
   isEditingUser.value = true;
   userModalError.value = '';
-  userForm.value = { ID_USUARIO: u.ID_USUARIO, USUARIO: u.USUARIO, EMAIL: u.EMAIL, CONTRASENA: '', ID_EMPLEADO: u.ID_EMPLEADO, ROLES: [...(u.roles || [])], ESACTIVO: !!u.ESACTIVO, BLOQUEADO: !!u.BLOQUEADO };
+  userForm.value = { ID_USUARIO: u.ID_USUARIO, USUARIO: u.USUARIO, EMAIL: u.EMAIL, CONTRASENA: '', ID_EMPLEADO: u.ID_EMPLEADO, ROLES: normalizeIdList(u.roles), ESACTIVO: !!u.ESACTIVO, BLOQUEADO: !!u.BLOQUEADO };
   showUserModal.value = true;
 };
 
@@ -440,9 +552,15 @@ const saveUser = async () => {
   }
 };
 
+const normalizeIdList = (value) => {
+  if (Array.isArray(value)) return value.filter((id) => id != null);
+  if (value && typeof value === 'object') return Object.values(value).filter((id) => id != null);
+  return [];
+};
+
 const openPermissionsModal = (user) => {
   selectedUser.value = user;
-  selectedUserPermissions.value = [...(user.permissions || [])];
+  selectedUserPermissions.value = normalizeIdList(user.permissions);
   showPermissionsModal.value = true;
 };
 
@@ -502,9 +620,9 @@ const openRolPermisosModal = async (r) => {
   selectedRol.value = r;
   try {
     const res = await api.get(`/roles/${r.ID_ROL}/permisos`);
-    selectedRolPermissions.value = res.data;
+    selectedRolPermissions.value = normalizeIdList(res.data);
   } catch {
-    selectedRolPermissions.value = [...(r.permisos || [])];
+    selectedRolPermissions.value = normalizeIdList(r.permisos);
   }
   showRolPermisosModal.value = true;
 };
@@ -520,7 +638,7 @@ const saveRolPermisos = async () => {
 };
 
 const selectAllRolPermisos = () => {
-  selectedRolPermissions.value = permisos.value.map(p => p.ID_PERMISO);
+  selectedRolPermissions.value = permisosCatalogo.value.map((p) => p.ID_PERMISO);
 };
 
 const clearAllRolPermisos = () => {

@@ -285,6 +285,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:SALARIAL_DELETE')->delete('/parametros-aguinaldo/{id}',    [App\Http\Controllers\ParametrosAguinaldosController::class, 'destroy']);
     Route::middleware('permission:SALARIAL_CREATE')->post  ('/parametros-aguinaldo/seed/{empresaId}', [App\Http\Controllers\ParametrosAguinaldosController::class, 'seedDefault']);
 
+    Route::middleware('permission:ERROR_JOURNAL_VIEW')->get('/error-journal', [App\Http\Controllers\ErrorJournalController::class, 'index']);
+    Route::middleware('permission:ERROR_JOURNAL_VIEW')->get('/error-journal/{filename}', [App\Http\Controllers\ErrorJournalController::class, 'show']);
+
     // ── Dashboard ─────────────────────────────────────────────────────────────
     Route::middleware('permission:SALARIAL_VIEW')->get('/dashboard/stats', [App\Http\Controllers\DashboardController::class, 'stats']);
 });

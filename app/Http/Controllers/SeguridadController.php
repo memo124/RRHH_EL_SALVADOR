@@ -227,8 +227,9 @@ class SeguridadController extends Controller
     public function indexPermisos(Request $request)
     {
         $query = DB::table('PERMISO')->orderBy('ID_PERMISO');
+        $this->applySearch($query, $request, ['CODIGO_PERMISO', 'NOMBRE_PERMISO', 'DESCRIPCION']);
 
-        return $this->paginateQuery($query, $request, ['NOMBREPERMISO', 'DESCRIPCION', 'MODULO']);
+        return response()->json($query->get());
     }
 
     public function updateUsuarioPermisos(Request $request, $id)

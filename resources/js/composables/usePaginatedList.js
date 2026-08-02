@@ -1,5 +1,7 @@
-import { ref, unref } from 'vue';
+import { onUnmounted, ref, unref } from 'vue';
 import api from '../services/api';
+import { getApiErrorMessage, isRequestCancelled } from '../utils/apiError';
+import { useToast } from './useToast';
 
 /**
  * Lista paginada server-side (tablas).
@@ -14,10 +16,27 @@ export function usePaginatedList(endpoint, options = {}) {
     const perPage = ref(options.perPage ?? 25);
     const total = ref(0);
     const lastPage = ref(1);
+    const loadError = ref('');
     let searchTimer = null;
+    let fetchController = null;
+    let fetchGeneration = 0;
+    const toast = options.silentErrors ? null : useToast();
+
+    const abortInFlightFetch = () => {
+        if (fetchController) {
+            fetchController.abort();
+            fetchController = null;
+        }
+    };
 
     const fetch = async (extraParams = {}) => {
+        abortInFlightFetch();
+        fetchController = new AbortController();
+        const generation = ++fetchGeneration;
+        const signal = fetchController.signal;
+
         loading.value = true;
+        loadError.value = '';
         try {
             const params = {
                 page: page.value,
@@ -26,7 +45,11 @@ export function usePaginatedList(endpoint, options = {}) {
                 ...(unref(options.params) ?? {}),
                 ...extraParams,
             };
-            const res = await api.get(unref(endpoint), { params });
+            const res = await api.get(unref(endpoint), { params, signal });
+            if (generation !== fetchGeneration) {
+                return;
+            }
+
             const payload = res.data;
 
             if (Array.isArray(payload)) {
@@ -41,14 +64,28 @@ export function usePaginatedList(endpoint, options = {}) {
                 page.value = payload.current_page ?? page.value;
             }
         } catch (err) {
-            console.error(err);
+            if (isRequestCancelled(err) || generation !== fetchGeneration) {
+                return;
+            }
             items.value = [];
             total.value = 0;
             lastPage.value = 1;
+            loadError.value = getApiErrorMessage(err, 'No se pudo cargar la información.');
+            if (toast && !options.silentErrors) {
+                toast.error('Error al cargar', loadError.value);
+            }
         } finally {
-            loading.value = false;
+            if (generation === fetchGeneration) {
+                loading.value = false;
+                fetchController = null;
+            }
         }
     };
+
+    onUnmounted(() => {
+        clearTimeout(searchTimer);
+        abortInFlightFetch();
+    });
 
     const setPage = (p) => {
         page.value = Math.max(1, Math.min(p, lastPage.value || 1));
@@ -76,6 +113,7 @@ export function usePaginatedList(endpoint, options = {}) {
         items.value = [];
         total.value = 0;
         lastPage.value = 1;
+        loadError.value = '';
     };
 
     return {
@@ -86,6 +124,7 @@ export function usePaginatedList(endpoint, options = {}) {
         perPage,
         total,
         lastPage,
+        loadError,
         fetch,
         setPage,
         setSearch,

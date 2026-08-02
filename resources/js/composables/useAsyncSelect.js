@@ -1,5 +1,6 @@
-import { ref, computed, unref } from 'vue';
+import { onUnmounted, ref, computed, unref } from 'vue';
 import api from '../services/api';
+import { isRequestCancelled } from '../utils/apiError';
 
 /**
  * Opciones async paginadas para AsyncSelect (server-side + acumulación por scroll).
@@ -68,6 +69,7 @@ export function useAsyncSelect(endpoint, options = {}) {
             lastPage.value = payload.last_page ?? 1;
             total.value = payload.total ?? optionsList.value.length;
         } catch (err) {
+            if (isRequestCancelled(err)) return;
             console.error(err);
             if (!append) optionsList.value = [];
         } finally {
@@ -115,9 +117,14 @@ export function useAsyncSelect(endpoint, options = {}) {
                 }
             }
         } catch (err) {
+            if (isRequestCancelled(err)) return;
             console.error(err);
         }
     };
+
+    onUnmounted(() => {
+        clearTimeout(debounceTimer);
+    });
 
     const reset = () => {
         optionsList.value = [];

@@ -3,10 +3,14 @@
 namespace App\Services;
 
 use App\Models\Planilla;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 class PayrollRentRecalculationService
 {
+    /** Tipo planilla ordinaria: recibe el ajuste de renta en junio/diciembre. */
+    public const TIPO_PLANILLA_ORDINARIA = 1;
+
     /** @var PayrollCalculatorService */
     protected $calculator;
 
@@ -24,6 +28,28 @@ class PayrollRentRecalculationService
     }
 
     /**
+     * Planillas cuyos montos suman al acumulado semestral (ordinaria, vacaciones, extraordinaria…).
+     * Excluye aguinaldo y tipos sin renta.
+     */
+    public function aplicaAcumuladoRecalculo(int $tipoPlanillaId): bool
+    {
+        $tipo = DB::table('TIPO_PLANILLA')
+            ->where('ID_TIPOPLANILLA', $tipoPlanillaId)
+            ->first();
+
+        return $tipo && (bool) $tipo->APLICA_RENTA;
+    }
+
+    /**
+     * Solo la planilla ordinaria recibe el ajuste de junio/diciembre.
+     * Vacaciones y otros tipos gravados aportan al acumulado pero retienen ISR normal del periodo.
+     */
+    public function aplicaAjusteRecalculoEnPlanilla(Planilla $planilla): bool
+    {
+        return (int) $planilla->ID_TIPOPLANILLA === self::TIPO_PLANILLA_ORDINARIA;
+    }
+
+    /**
      * Obtiene la renta retenida acumulada en el periodo de recálculo
      * (enero-junio o julio-diciembre) excluyendo la planilla actual.
      */
@@ -32,15 +58,7 @@ class PayrollRentRecalculationService
         $mesInicio = $mes <= 6 ? 1 : 7;
         $mesFin = $mes <= 6 ? 5 : 11;
 
-        $sum = DB::table('DETALLE_PLANILLA')
-            ->join('PLANILLA', 'DETALLE_PLANILLA.ID_PLANILLA', '=', 'PLANILLA.ID_PLANILLA')
-            ->join('PERIODO_LABORAL', 'PLANILLA.ID_PERIODO', '=', 'PERIODO_LABORAL.ID_PERIODO')
-            ->where('DETALLE_PLANILLA.ID_EMPLEADO', $empleadoId)
-            ->where('PLANILLA.ID_PLANILLA', '!=', $planilla->ID_PLANILLA)
-            ->where('PLANILLA.ANULADA', false)
-            ->where('PLANILLA.RECALCULADA', true)
-            ->whereRaw('EXTRACT(YEAR FROM "PERIODO_LABORAL"."FECHAFIN") = ?', [$anio])
-            ->whereRaw('EXTRACT(MONTH FROM "PERIODO_LABORAL"."FECHAFIN") BETWEEN ? AND ?', [$mesInicio, $mesFin])
+        $sum = $this->queryDetalleAcumulado($empleadoId, $planilla, $mesInicio, $mesFin, $anio)
             ->sum('DETALLE_PLANILLA.RENTA_EMPLEADO');
 
         return (float) ($sum ?? 0);
@@ -54,15 +72,7 @@ class PayrollRentRecalculationService
         $mesInicio = $mes <= 6 ? 1 : 7;
         $mesFin = $mes <= 6 ? 5 : 11;
 
-        $rows = DB::table('DETALLE_PLANILLA')
-            ->join('PLANILLA', 'DETALLE_PLANILLA.ID_PLANILLA', '=', 'PLANILLA.ID_PLANILLA')
-            ->join('PERIODO_LABORAL', 'PLANILLA.ID_PERIODO', '=', 'PERIODO_LABORAL.ID_PERIODO')
-            ->where('DETALLE_PLANILLA.ID_EMPLEADO', $empleadoId)
-            ->where('PLANILLA.ID_PLANILLA', '!=', $planilla->ID_PLANILLA)
-            ->where('PLANILLA.ANULADA', false)
-            ->where('PLANILLA.RECALCULADA', true)
-            ->whereRaw('EXTRACT(YEAR FROM "PERIODO_LABORAL"."FECHAFIN") = ?', [$anio])
-            ->whereRaw('EXTRACT(MONTH FROM "PERIODO_LABORAL"."FECHAFIN") BETWEEN ? AND ?', [$mesInicio, $mesFin])
+        $rows = $this->queryDetalleAcumulado($empleadoId, $planilla, $mesInicio, $mesFin, $anio)
             ->select('DETALLE_PLANILLA.DEVENGADO_GRAVADO', 'DETALLE_PLANILLA.AFP_EMPLEADO', 'DETALLE_PLANILLA.ISSS_EMPLEADO')
             ->get();
 
@@ -95,7 +105,7 @@ class PayrollRentRecalculationService
         $mes = (int) date('n', strtotime($periodo->FECHAFIN));
         $anio = (int) date('Y', strtotime($periodo->FECHAFIN));
 
-        if (!$this->esMesRecalculo($mes)) {
+        if (!$this->esMesRecalculo($mes) || !$this->aplicaAjusteRecalculoEnPlanilla($planilla)) {
             return ['renta' => $rentaPeriodoNormal, 'ajuste' => 0.00, 'recalculada' => false];
         }
 
@@ -117,10 +127,33 @@ class PayrollRentRecalculationService
         ];
     }
 
+    /**
+     * Detalle de planilla que aporta al acumulado semestral (incluye vacaciones).
+     */
+    protected function queryDetalleAcumulado(
+        int $empleadoId,
+        Planilla $planilla,
+        int $mesInicio,
+        int $mesFin,
+        int $anio
+    ): Builder {
+        return DB::table('DETALLE_PLANILLA')
+            ->join('PLANILLA', 'DETALLE_PLANILLA.ID_PLANILLA', '=', 'PLANILLA.ID_PLANILLA')
+            ->join('TIPO_PLANILLA', 'PLANILLA.ID_TIPOPLANILLA', '=', 'TIPO_PLANILLA.ID_TIPOPLANILLA')
+            ->join('PERIODO_LABORAL', 'PLANILLA.ID_PERIODO', '=', 'PERIODO_LABORAL.ID_PERIODO')
+            ->where('DETALLE_PLANILLA.ID_EMPLEADO', $empleadoId)
+            ->where('PLANILLA.ID_PLANILLA', '!=', $planilla->ID_PLANILLA)
+            ->where('PLANILLA.ANULADA', false)
+            ->where('PLANILLA.RECALCULADA', true)
+            ->where('TIPO_PLANILLA.APLICA_RENTA', true)
+            ->whereRaw('EXTRACT(YEAR FROM "PERIODO_LABORAL"."FECHAFIN") = ?', [$anio])
+            ->whereRaw('EXTRACT(MONTH FROM "PERIODO_LABORAL"."FECHAFIN") BETWEEN ? AND ?', [$mesInicio, $mesFin]);
+    }
+
     protected function resolverFrecuenciaMensual(int $frecuenciaIsrId): int
     {
         $mensual = DB::table('FRECUENCIA_ISR')
-            ->whereRaw('UPPER("NOMBREFRECUENCIA") LIKE ?', ['%MENSUAL%'])
+            ->whereRaw('UPPER("FRECUENCIAISR") LIKE ?', ['%MENSUAL%'])
             ->value('ID_FRECUENCIAISR');
 
         return $mensual ? (int) $mensual : $frecuenciaIsrId;

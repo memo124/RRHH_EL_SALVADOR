@@ -12,12 +12,16 @@
 
 <script setup>
 import { onMounted } from 'vue';
-import { isLoading } from './services/api';
+import { isLoading, registerApiToast } from './services/api';
 import { loadUserTheme, getCurrentUserId } from './utils/theme';
+import { useToast } from './composables/useToast';
 import AppToast from './components/AppToast.vue';
 import AppDialog from './components/AppDialog.vue';
 
+const toast = useToast();
+
 onMounted(() => {
+  registerApiToast(toast);
   if (getCurrentUserId()) {
     loadUserTheme();
   }

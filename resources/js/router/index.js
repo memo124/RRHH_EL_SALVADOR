@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { cancelPendingRequests } from '../services/api';
 import Login from '../views/Login.vue';
 import Dashboard from '../views/Dashboard.vue';
 import TipoContratacionIndex from '../views/TipoContratacion/Index.vue';
@@ -148,6 +149,10 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
+    if (from.name && to.path !== from.path) {
+        cancelPendingRequests();
+    }
+
     const token = localStorage.getItem('token');
     if (to.meta.requiresAuth && !token) {
         next('/login');

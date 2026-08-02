@@ -52,7 +52,12 @@ class IncapacidadController extends Controller
                 ->where('INCAPACIDAD.FECHA_FIN', '>=', now()->toDateString());
         }
 
-        return $this->paginateQuery($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO', 'NUMERO_CERTIFICADO_ISSS', 'NOMBRE_TIPO']);
+        return $this->paginateQuery($query, $request, [
+            '"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1"',
+            'EMPLEADO.CODIGOEMPLEADO',
+            'INCAPACIDAD.NUMERO_CERTIFICADO_ISSS',
+            'TIPO_INCAPACIDAD.NOMBRE_TIPO',
+        ]);
     }
 
     public function store(Request $request)
@@ -115,10 +120,14 @@ class IncapacidadController extends Controller
 
     public function subsidios(Request $request)
     {
-        $query = DB::table('SUBSIDIO_ISSS')
-            ->join('INCAPACIDAD', 'SUBSIDIO_ISSS.ID_INCAPACIDAD', '=', 'INCAPACIDAD.ID_INCAPACIDAD')
-            ->join('EMPLEADO', 'INCAPACIDAD.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
-            ->join('TIPO_INCAPACIDAD', 'INCAPACIDAD.ID_TIPOINCAPACIDAD', '=', 'TIPO_INCAPACIDAD.ID_TIPOINCAPACIDAD')
+        $totalesQuery = $this->subsidiosBaseQuery($request);
+        $totalesRow = $totalesQuery->selectRaw("
+            COALESCE(SUM(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'PENDIENTE' THEN \"SUBSIDIO_ISSS\".\"MONTO_SUBSIDIO_CALCULADO_ISSS\" ELSE 0 END), 0) AS pendiente,
+            COALESCE(SUM(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'COBRADO' THEN \"SUBSIDIO_ISSS\".\"MONTO_SUBSIDIO_CALCULADO_ISSS\" ELSE 0 END), 0) AS cobrado,
+            COUNT(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'PENDIENTE' THEN 1 END) AS count_pendiente
+        ")->first();
+
+        $query = $this->subsidiosBaseQuery($request)
             ->select(
                 'SUBSIDIO_ISSS.*',
                 'EMPLEADO.CODIGOEMPLEADO',
@@ -133,17 +142,11 @@ class IncapacidadController extends Controller
             )
             ->orderBy('SUBSIDIO_ISSS.ID_SUBSIDIO', 'desc');
 
-        if ($request->filled('estado')) {
-            $query->where('SUBSIDIO_ISSS.ESTADO_SUBSIDIO', $request->estado);
-        }
-
-        $totalesRow = (clone $query)->selectRaw("
-            COALESCE(SUM(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'PENDIENTE' THEN \"SUBSIDIO_ISSS\".\"MONTO_SUBSIDIO_CALCULADO_ISSS\" ELSE 0 END), 0) AS pendiente,
-            COALESCE(SUM(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'COBRADO' THEN \"SUBSIDIO_ISSS\".\"MONTO_SUBSIDIO_CALCULADO_ISSS\" ELSE 0 END), 0) AS cobrado,
-            COUNT(CASE WHEN \"SUBSIDIO_ISSS\".\"ESTADO_SUBSIDIO\" = 'PENDIENTE' THEN 1 END) AS count_pendiente
-        ")->first();
-
-        $this->applySearch($query, $request, ['NOMBRE_EMPLEADO', 'CODIGOEMPLEADO', 'NUMERO_CERTIFICADO_ISSS']);
+        $this->applySearch($query, $request, [
+            '"EMPLEADO"."NOMBRES" || \' \' || "EMPLEADO"."APELLIDO_1"',
+            'EMPLEADO.CODIGOEMPLEADO',
+            'INCAPACIDAD.NUMERO_CERTIFICADO_ISSS',
+        ]);
         $paginated = $query->paginate($this->perPage($request));
 
         return response()->json([
@@ -158,6 +161,20 @@ class IncapacidadController extends Controller
                 'count_pendiente' => (int) ($totalesRow->count_pendiente ?? 0),
             ],
         ]);
+    }
+
+    private function subsidiosBaseQuery(Request $request)
+    {
+        $query = DB::table('SUBSIDIO_ISSS')
+            ->join('INCAPACIDAD', 'SUBSIDIO_ISSS.ID_INCAPACIDAD', '=', 'INCAPACIDAD.ID_INCAPACIDAD')
+            ->join('EMPLEADO', 'INCAPACIDAD.ID_EMPLEADO', '=', 'EMPLEADO.ID_EMPLEADO')
+            ->join('TIPO_INCAPACIDAD', 'INCAPACIDAD.ID_TIPOINCAPACIDAD', '=', 'TIPO_INCAPACIDAD.ID_TIPOINCAPACIDAD');
+
+        if ($request->filled('estado')) {
+            $query->where('SUBSIDIO_ISSS.ESTADO_SUBSIDIO', $request->estado);
+        }
+
+        return $query;
     }
 
     public function actualizarSubsidio(Request $request, $id)

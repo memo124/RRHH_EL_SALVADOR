@@ -145,35 +145,7 @@
 
       <main class="app-main flex-1 p-3 sm:p-5 lg:p-8 overflow-y-auto overflow-x-hidden min-w-0 w-full">
         <slot>
-          <div class="space-y-4 sm:space-y-6">
-            <h1 class="page-title">Panel de Administración</h1>
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-              <template v-if="statsLoading">
-                <div v-for="i in 4" :key="i" class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 animate-pulse">
-                  <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
-                  <div class="h-9 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mt-3"></div>
-                </div>
-              </template>
-              <template v-else>
-                <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Colaboradores Activos</h3>
-                  <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{{ stats.empleados_activos ?? '—' }}</p>
-                </div>
-                <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Planillas Pendientes</h3>
-                  <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{{ stats.planillas_pendientes ?? '—' }}</p>
-                </div>
-                <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Incapacidades Activas</h3>
-                  <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{{ stats.incapacidades_activas ?? '—' }}</p>
-                </div>
-                <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Préstamos Activos</h3>
-                  <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{{ stats.prestamos_activos ?? '—' }}</p>
-                </div>
-              </template>
-            </div>
-          </div>
+          <DashboardHome :username="user?.username ?? user?.email ?? ''" />
         </slot>
       </main>
     </div>
@@ -191,10 +163,9 @@ import {
 } from '../utils/theme';
 import { THEME_OPTIONS } from '../utils/staticSelectOptions';
 import AsyncSelect from '../components/AsyncSelect.vue';
+import DashboardHome from './DashboardHome.vue';
 
 const user = ref(null);
-const stats = ref({});
-const statsLoading = ref(true);
 const router = useRouter();
 const route = useRoute();
 const openGroups = ref({});
@@ -258,16 +229,6 @@ onMounted(async () => {
     }
   } catch {
     user.value = null;
-  }
-
-  try {
-    statsLoading.value = true;
-    const res = await api.get('/dashboard/stats');
-    stats.value = res.data;
-  } catch {
-    /* ignore if no permission */
-  } finally {
-    statsLoading.value = false;
   }
 });
 

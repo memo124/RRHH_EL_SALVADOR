@@ -23,7 +23,19 @@ trait PaginatesQueries
 
         $query->where(function ($q) use ($search, $columns) {
             foreach ($columns as $column) {
-                $q->orWhere($column, 'ILIKE', '%' . $search . '%');
+                if (is_array($column)) {
+                    $expression = $column['raw'] ?? null;
+                    if ($expression) {
+                        $q->orWhereRaw("({$expression}) ILIKE ?", ['%' . $search . '%']);
+                    }
+                    continue;
+                }
+
+                if (str_contains($column, '||') || str_contains($column, '(')) {
+                    $q->orWhereRaw("({$column}) ILIKE ?", ['%' . $search . '%']);
+                } else {
+                    $q->orWhere($column, 'ILIKE', '%' . $search . '%');
+                }
             }
         });
     }

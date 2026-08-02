@@ -2,6 +2,46 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.2.0] - 2026-08-02
+
+### Agregado
+
+- **Dashboard analítico:** 8 KPIs, 5 gráficas (Chart.js), alertas y accesos rápidos (`DashboardService`, `DashboardHome.vue`)
+- **Bitácora de errores API:** `ErrorJournalService`, rotación de archivos, pestaña en Seguridad (`ERROR_JOURNAL_VIEW`)
+- **Respuestas JSON centralizadas:** `ApiExceptionRenderer` sin stack trace; referencia de error para soporte
+- **Toasts automáticos:** éxito en POST/PUT/PATCH/DELETE; mensajes del backend o por defecto (`apiFeedback.js`)
+- **Cancelación de peticiones:** al cambiar de ruta y al cambiar pestañas en listas paginadas (`AbortController`)
+- **Ejercicio quincenal ISR:** seeder Ene–Jun 2026 + vacaciones + doc de verificación (`DemoQuincenalJunioRecalculoSeeder`)
+- **Planilla PDF/Excel:** agrupación por área y departamento con subtotales
+- **Boletas PDF:** vista dedicada sin toolbar HTML ni encabezado duplicado
+- Documentación de pruebas: `docs/PRUEBAS_v1.2.0.md`
+
+### Corregido
+
+- **Recálculo renta junio:** columna `FRECUENCIAISR` (antes `NOMBREFRECUENCIA` inexistente)
+- **Vacaciones en recálculo:** ingresos gravados de planilla vacaciones suman al acumulado; ajuste semestral solo en planilla ordinaria
+- **Subsidios ISSS:** error PostgreSQL `GROUP BY` al listar certificados pendientes
+- **Seguridad permisos:** listado plano (no paginado); búsqueda en columnas correctas; sin `null.ID_PERMISO`
+- **Race condition tabs:** loader/datos incorrectos al cambiar pestañas rápido en catálogos multi-tab
+- **Interceptor API:** peticiones canceladas no muestran toast de error
+
+### Cambiado
+
+- `usePaginatedList` y `useAsyncSelect` ignoran respuestas obsoletas y abortan fetch anterior
+- `PaginatesQueries` soporta expresiones raw en búsqueda ILIKE
+- `DashboardController` delega en `DashboardService`
+- `.gitignore` excluye `storage/app/error-journal`
+
+### Dependencias
+
+- `chart.js` ^4.x (gráficas del dashboard)
+
+### Pruebas
+
+Ver [docs/PRUEBAS_v1.2.0.md](docs/PRUEBAS_v1.2.0.md).
+
+[1.2.0]: https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.2.0
+
 ## [1.0.0] - 2026-07-27
 
 ### Agregado

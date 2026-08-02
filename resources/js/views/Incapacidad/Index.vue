@@ -335,6 +335,7 @@ import { usePaginatedList } from '../../composables/usePaginatedList';
 import api from '../../services/api';
 import { dialog, dialogEmpleadoLabel } from '../../composables/useDialog';
 import { useToast } from '../../composables/useToast';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const toast = useToast();
 
@@ -403,6 +404,12 @@ const loadSub = async () => {
     subTotal.value = payload.total ?? subsidios.value.length;
     subLastPage.value = payload.last_page ?? 1;
     subPage.value = payload.current_page ?? subPage.value;
+  } catch (err) {
+    subsidios.value = [];
+    subTotales.value = { pendiente: 0, cobrado: 0, count_pendiente: 0 };
+    subTotal.value = 0;
+    subLastPage.value = 1;
+    toast.error('Error al cargar cobros ISSS', getApiErrorMessage(err));
   } finally {
     loadingSub.value = false;
   }
@@ -473,7 +480,6 @@ const cancelar = async (i) => {
   if (!values) return;
   try {
     await api.post(`/incapacidades/${i.ID_INCAPACIDAD}/cancelar`, { motivo: values.motivo });
-    toast.success('Incapacidad cancelada');
     reload();
   } catch {
     toast.error('Error', 'No se pudo cancelar la incapacidad.');

@@ -81,6 +81,9 @@ class UsuarioSeeder extends Seeder
             ['ID_PERMISO' => 30, 'ID_MODULO' => 8, 'CODIGO_PERMISO' => 'CONTRATO_CREATE', 'NOMBRE_PERMISO' => 'Crear Contratos', 'DESCRIPCION' => 'Permite crear contratos y plantillas'],
             ['ID_PERMISO' => 31, 'ID_MODULO' => 8, 'CODIGO_PERMISO' => 'CONTRATO_UPDATE', 'NOMBRE_PERMISO' => 'Editar Contratos', 'DESCRIPCION' => 'Permite editar contratos y plantillas'],
             ['ID_PERMISO' => 32, 'ID_MODULO' => 8, 'CODIGO_PERMISO' => 'CONTRATO_DELETE', 'NOMBRE_PERMISO' => 'Anular Contratos', 'DESCRIPCION' => 'Permite anular contratos e inactivar plantillas'],
+
+            // Bitácora de errores (Seguridad)
+            ['ID_PERMISO' => 33, 'ID_MODULO' => 6, 'CODIGO_PERMISO' => 'ERROR_JOURNAL_VIEW', 'NOMBRE_PERMISO' => 'Ver bitácora de errores', 'DESCRIPCION' => 'Permite consultar la bitácora técnica de errores del sistema'],
         ];
 
         foreach ($permisos as $perm) {
