@@ -1,21 +1,24 @@
 # RRHH El Salvador
 
-Sistema de Recursos Humanos y nómina para empresas en El Salvador. Incluye expedientes de empleados, cálculo de planilla (ISSS, AFP, renta, recálculo semestral), asistencia, incapacidades, liquidaciones, reportes PDF/Excel, exportación bancaria y panel analítico de inicio.
+Sistema de Recursos Humanos y nómina para empresas en El Salvador. Incluye expedientes de empleados, cálculo de planilla (ISSS, AFP, renta, recálculo semestral), asistencia, incapacidades, liquidaciones, reportes PDF/Excel, exportación bancaria, cumplimiento legal, gestión humana integral y portal del empleado.
 
-**Versión:** `1.2.0`  
-**Stack:** Laravel 11 · Vue 3 · Vite 6 · Tailwind CSS 3 · Chart.js 4 · PostgreSQL 14+
+**Versión:** `1.3.0`  
+**Stack:** Laravel 11 · Vue 3 · Vite 6 · Tailwind CSS 3 · Chart.js 4 · FullCalendar 6 · PostgreSQL 14+ · Scramble (OpenAPI)
 
 ---
 
-## Novedades v1.2.0
+## Novedades v1.3.0
 
-- **Dashboard de inicio:** 8 KPIs, 5 gráficas (empleados, nómina, planillas, incapacidades), alertas y accesos rápidos
-- **Errores API centralizados:** respuestas JSON amigables, referencia de soporte y bitácora rotativa (`Seguridad → Errores del sistema`)
-- **UX mejorada:** toasts automáticos al guardar/eliminar; cancelación de peticiones al navegar o cambiar pestañas
-- **Recálculo ISR quincenal:** ejercicio demo Ene–Jun 2026 con vacaciones incluidas en acumulado semestral
-- **Correcciones:** subsidios ISSS, permisos en Seguridad, recálculo renta junio, race condition en tabs
+- **Gestión Humana:** encuestas, calendario RRHH, formularios de actualización con aprobación, documentos adjuntos, vacaciones/permisos (integración planilla), capacitaciones
+- **Reclutamiento y evaluación:** vacantes, candidatos, entrevistas, onboarding a empleado, periodos y metas de desempeño
+- **Cumplimiento SV:** exportaciones ISSS, AFP, INSAFORP, renta F-14, aguinaldo, retención 10% y bitácora de altas/bajas ISSS
+- **Portal del empleado:** boletas, permisos, encuestas, evaluaciones y perfil (`PORTAL_*`)
+- **Auditoría y notificaciones:** bitácora de cambios y centro de notificaciones in-app
+- **API OpenAPI:** documentación interactiva Scramble en `/docs/api`
+- **Asistencia:** importación de marcaciones desde CSV
+- **Setup:** wizard de instalación en `/setup` con `BootstrapSeeder`
 
-Ver detalle completo en [CHANGELOG.md](CHANGELOG.md) y plan de pruebas en [docs/PRUEBAS_v1.2.0.md](docs/PRUEBAS_v1.2.0.md).
+Ver detalle completo en [CHANGELOG.md](CHANGELOG.md), módulo en [docs/MODULO-GESTION-HUMANA.md](docs/MODULO-GESTION-HUMANA.md) y plan de pruebas en [docs/PRUEBAS_v1.3.0.md](docs/PRUEBAS_v1.3.0.md).
 
 ---
 
@@ -75,7 +78,7 @@ Abrir `http://127.0.0.1:8000`
 | Usuario | `admin@rrhh.sv` |
 | Contraseña | `Admin123!` |
 
-> Tras agregar permisos nuevos (p. ej. bitácora de errores), **cerrar sesión y volver a entrar** para refrescar permisos en el menú.
+> Tras agregar permisos nuevos (Gestión Humana, portal, auditoría), **cerrar sesión y volver a entrar** para refrescar permisos en el menú.
 
 ---
 
@@ -84,14 +87,17 @@ Abrir `http://127.0.0.1:8000`
 | Documento | Contenido |
 |-----------|-----------|
 | [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
-| [docs/PRUEBAS_v1.2.0.md](docs/PRUEBAS_v1.2.0.md) | Plan de pruebas de la versión actual |
+| [docs/PRUEBAS_v1.3.0.md](docs/PRUEBAS_v1.3.0.md) | Plan de pruebas de la versión actual |
+| [docs/MODULO-GESTION-HUMANA.md](docs/MODULO-GESTION-HUMANA.md) | Gestión Humana, cumplimiento SV y portal |
 | [docs/INSTALACION-WINDOWS.md](docs/INSTALACION-WINDOWS.md) | Instalación en Windows (AppServ / XAMPP) |
 | [docs/INSTALACION-LINUX.md](docs/INSTALACION-LINUX.md) | Instalación en Linux |
 | [docs/INSTALACION-DOCKER.md](docs/INSTALACION-DOCKER.md) | Instalación con Docker |
 | [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | Capas, carpetas, APIs paginadas |
 | [docs/FRONTEND-UX.md](docs/FRONTEND-UX.md) | Diálogos, modales, toasts, tema oscuro |
 | [docs/API-CONCEPTOS-EMPLEADO.md](docs/API-CONCEPTOS-EMPLEADO.md) | Detalle de pagos, abonos, incapacidades |
+| [docs/PRUEBAS_v1.2.0.md](docs/PRUEBAS_v1.2.0.md) | Plan de pruebas v1.2.0 (histórico) |
 | [database/seeders/EJERCICIO_QUINCENAL_JUNIO_2026.md](database/seeders/EJERCICIO_QUINCENAL_JUNIO_2026.md) | Ejercicio quincenal + recálculo ISR |
+| [mobile/README.md](mobile/README.md) | Notas de consumo API para clientes móviles |
 
 ### Documentación API (Swagger / OpenAPI)
 
@@ -137,6 +143,7 @@ php artisan scramble:cache
 | `php artisan migrate --seed` | Estructura + catálogos + demo completo |
 | `php artisan db:seed --class=BootstrapSeeder` | Solo catálogos legales y RBAC (instalación limpia) |
 | `php artisan db:seed --class=DemoSeeder` | Datos demo + usuario `admin@rrhh.sv` |
+| `php artisan db:seed --class=RbacSeeder` | Roles y permisos (incl. portal / gestión humana) |
 | `php artisan migrate:fresh --seed` | Reinicia BD y vuelve a sembrar |
 | `php artisan db:seed --class=DemoQuincenalJunioRecalculoSeeder` | Ejercicio quincenal Ene–Jun + recálculo ISR |
 
@@ -146,12 +153,16 @@ php artisan scramble:cache
 
 - **Inicio (Dashboard):** KPIs, gráficas, alertas de contratos/marcaciones/planillas
 - **Corporativo:** empresas, áreas, departamentos, cargos, sucursales
-- **Empleados:** expedientes laborales
+- **Empleados:** expedientes laborales (educación, certificaciones, dependientes)
 - **Planilla:** cálculo mensual/quincenal, recálculo ISR junio/diciembre, boletas, PDF, Excel, archivo banco
-- **Asistencia:** marcaciones y procesamiento
+- **Asistencia:** marcaciones, procesamiento e importación CSV
 - **Incapacidades / ISSS:** certificados y subsidios
 - **Conceptos por empleado:** préstamos, descuentos, otros ingresos
-- **Seguridad:** usuarios, roles, permisos y bitácora de errores del sistema
+- **Gestión Humana:** calendario, encuestas, formularios, documentos, vacaciones/permisos, capacitaciones
+- **Reclutamiento / Evaluación:** vacantes, candidatos, entrevistas, desempeño
+- **Cumplimiento SV:** ISSS, AFP, INSAFORP, renta, aguinaldo, retención 10%, altas/bajas
+- **Portal del empleado:** autoservicio (boletas, permisos, encuestas, evaluaciones)
+- **Seguridad:** usuarios, roles, permisos, bitácora de errores y auditoría
 
 ---
 
@@ -173,6 +184,7 @@ Parámetros comunes en listados: `page`, `per_page` (10–100), `search` (búsqu
 
 | Versión | Fecha | Notas |
 |---------|-------|-------|
+| [1.3.0](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.3.0) | 2026-08-10 | Gestión Humana, cumplimiento SV, portal, auditoría, Scramble |
 | [1.2.0](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.2.0) | 2026-08-02 | Dashboard, errores API, UX, recálculo ISR |
 | [1.1.0](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.1.0) | 2026-07 | UX móvil, iconos SVG, paginación global |
 | [1.0.0](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.0.0) | 2026-07-27 | Planilla completa, reportes PDF/Excel |
