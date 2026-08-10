@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlanillaReportController;
+use App\Http\Controllers\PortalController;
+
+Route::get('/reportes/portal/boletas/{detalleId}/pdf', [PortalController::class, 'boletaPdf']);
 
 Route::get('/reportes/planillas/{id}/imprimir', [PlanillaReportController::class, 'imprimirPlanilla']);
 Route::get('/reportes/planillas/{id}/pdf', [PlanillaReportController::class, 'pdfPlanilla']);
@@ -16,6 +19,8 @@ Route::get('/reportes/contratos/lote/imprimir', [App\Http\Controllers\ContratoRe
 Route::get('/reportes/contratos/{id}', [App\Http\Controllers\ContratoReportController::class, 'imprimir']);
 Route::get('/reportes/contratos/{id}/pdf', [App\Http\Controllers\ContratoReportController::class, 'pdf']);
 
+Route::get('/reportes/cumplimiento/renta/pdf', [App\Http\Controllers\RentaRetencionController::class, 'pdf']);
+
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '.*');
+})->where('any', '^(?!docs(?:/|$)).*');

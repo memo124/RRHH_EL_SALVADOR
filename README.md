@@ -51,15 +51,24 @@ composer install
 npm install --legacy-peer-deps
 
 php artisan key:generate
-php artisan migrate --seed
+php artisan migrate
+php artisan db:seed --class=BootstrapSeeder
 npm run build
 
 php artisan serve
 ```
 
+Abrir `http://127.0.0.1:8000/setup` para registrar empresa y administrador.
+
+**Instalación con datos demo (desarrollo):**
+
+```bash
+php artisan migrate --seed
+```
+
 Abrir `http://127.0.0.1:8000`
 
-**Usuario demo (después de `migrate --seed`):**
+**Usuario demo (después de `migrate --seed` o `DemoSeeder`):**
 
 | Campo | Valor |
 |-------|-------|
@@ -84,6 +93,37 @@ Abrir `http://127.0.0.1:8000`
 | [docs/API-CONCEPTOS-EMPLEADO.md](docs/API-CONCEPTOS-EMPLEADO.md) | Detalle de pagos, abonos, incapacidades |
 | [database/seeders/EJERCICIO_QUINCENAL_JUNIO_2026.md](database/seeders/EJERCICIO_QUINCENAL_JUNIO_2026.md) | Ejercicio quincenal + recálculo ISR |
 
+### Documentación API (Swagger / OpenAPI)
+
+La API se documenta automáticamente con [Scramble](https://scramble.dedoc.co) a partir de las rutas Laravel.
+
+| URL | Descripción |
+|-----|-------------|
+| `/docs/api` | Interfaz interactiva (Try it) |
+| `/docs/api.json` | Especificación OpenAPI 3.1 (JSON) |
+
+**Autenticación para clientes móviles:**
+
+```http
+POST /api/login
+Content-Type: application/json
+
+{"usuario": "admin@rrhh.sv", "contrasena": "Admin123!"}
+```
+
+Respuesta: `{ "token": "...", "user": { ... } }`. En peticiones siguientes:
+
+```http
+Authorization: Bearer {token}
+```
+
+En **local** la documentación está disponible sin configuración extra. En **producción**, defina `SCRAMBLE_ENABLED=true` en `.env` solo en entornos internos o staging.
+
+```bash
+# Regenerar caché de la spec (opcional, tras despliegue)
+php artisan scramble:cache
+```
+
 ---
 
 ## Scripts útiles
@@ -94,7 +134,9 @@ Abrir `http://127.0.0.1:8000`
 | `composer dev` | Laravel serve + queue + logs + Vite (requiere `concurrently`) |
 | `npm run dev` | Vite en modo desarrollo (HMR) |
 | `npm run build` | Compila assets para producción |
-| `php artisan migrate --seed` | Estructura + datos demo |
+| `php artisan migrate --seed` | Estructura + catálogos + demo completo |
+| `php artisan db:seed --class=BootstrapSeeder` | Solo catálogos legales y RBAC (instalación limpia) |
+| `php artisan db:seed --class=DemoSeeder` | Datos demo + usuario `admin@rrhh.sv` |
 | `php artisan migrate:fresh --seed` | Reinicia BD y vuelve a sembrar |
 | `php artisan db:seed --class=DemoQuincenalJunioRecalculoSeeder` | Ejercicio quincenal Ene–Jun + recálculo ISR |
 

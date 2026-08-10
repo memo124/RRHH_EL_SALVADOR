@@ -18,7 +18,11 @@
       </div>
 
       <div v-if="tab === 'marcaciones'" class="space-y-4">
-        <button @click="openMarcModal" class="btn-primary">+ Registrar Marcación</button>
+        <div class="flex flex-wrap gap-2">
+          <button @click="openMarcModal" class="btn-primary">+ Registrar Marcación</button>
+          <button type="button" class="btn-secondary" @click="importInput?.click()">Importar archivo</button>
+          <input ref="importInput" type="file" accept=".csv,text/csv" class="hidden" @change="importarMarcaciones" />
+        </div>
         <SkeletonTable v-if="loadingMarc" :cols="4" :no-header="true" />
         <div v-else class="table-shell">
           <table v-table-cards class="table-cards table-base">
@@ -229,4 +233,29 @@ const procesarAsistencia = async () => {
   msg.value = r.data.message;
   await reloadMarcaciones();
 };
+
+const importInput = ref(null);
+
+async function importarMarcaciones(ev) {
+  const file = ev.target.files?.[0];
+  ev.target.value = '';
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('archivo', file);
+  try {
+    const { data } = await api.post('/marcaciones/importar', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    await dialog.alert({
+      title: 'Importación biométrica',
+      message: data.message + (data.errores?.length ? `\nAdvertencias: ${data.errores.slice(0, 5).join('; ')}` : ''),
+      variant: 'success',
+    });
+    await reloadMarcaciones();
+  } catch (err) {
+    await dialog.alert({
+      title: 'Error al importar',
+      message: err.response?.data?.message || err.response?.data?.error || err.message,
+      variant: 'danger',
+    });
+  }
+}
 </script>

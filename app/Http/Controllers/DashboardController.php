@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\DashboardService;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -10,8 +11,12 @@ class DashboardController extends Controller
         protected DashboardService $dashboard
     ) {}
 
-    public function stats()
+    public function stats(Request $request)
     {
-        return response()->json($this->dashboard->getStats());
+        $empresaId = $request->filled('ID_EMPRESA')
+            ? (int) $request->input('ID_EMPRESA')
+            : null;
+
+        return response()->json($this->dashboard->getStats($empresaId));
     }
 }

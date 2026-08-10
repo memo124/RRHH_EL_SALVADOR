@@ -100,7 +100,21 @@
             <h3 class="modal-title">{{ isEditing ? 'Editar Expediente de Empleado' : 'Registrar Nuevo Empleado' }}</h3>
             <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-semibold" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
           </div>
-          <form v-submit-lock="saveForm" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+
+          <div v-if="isEditing" class="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto px-4">
+            <button
+              v-for="t in expedienteTabs"
+              :key="t.key"
+              type="button"
+              @click="expedienteTab = t.key"
+              :class="expedienteTab === t.key ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'"
+              class="py-2.5 px-4 border-b-2 text-sm font-medium transition-all whitespace-nowrap"
+            >
+              {{ t.label }}
+            </button>
+          </div>
+
+          <form v-if="expedienteTab === 'datos'" v-submit-lock="saveForm" class="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div class="modal-body space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <!-- Datos Personales -->
@@ -252,6 +266,116 @@
               <button type="submit" class="btn-primary">Guardar</button>
             </div>
           </form>
+
+          <!-- Educación -->
+          <div v-else-if="expedienteTab === 'educacion'" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div class="modal-body space-y-4">
+              <div class="flex justify-end">
+                <button type="button" class="btn-primary text-sm" @click="addEducacion">+ Agregar educación</button>
+              </div>
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-xs uppercase text-slate-500 border-b dark:border-slate-600">
+                    <th class="py-2 text-left">Nivel</th>
+                    <th class="py-2 text-left">Título Obtenido</th>
+                    <th class="py-2 text-left">Institución</th>
+                    <th class="py-2 text-left">Graduación</th>
+                    <th class="py-2 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="e in educacionList" :key="e.ID_EMPLEADO_EDUCACION" class="border-b dark:border-slate-700">
+                    <td class="py-2">{{ e.EDUCACION_NOMBRE || '—' }}</td>
+                    <td class="py-2">{{ e.TITULO_OBTENIDO || '—' }}</td>
+                    <td class="py-2">{{ e.INSTITUCION || '—' }}</td>
+                    <td class="py-2">{{ fmtDate(e.FECHA_GRADUACION) }}</td>
+                    <td class="py-2 text-right space-x-1">
+                      <IconActionButton variant="edit" @click="editEducacion(e)" />
+                      <IconActionButton variant="delete" @click="deleteEducacion(e)" />
+                    </td>
+                  </tr>
+                  <tr v-if="!educacionList.length"><td colspan="5" class="py-4 text-center text-slate-400">Sin registros.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" @click="closeModal">Cerrar</button>
+            </div>
+          </div>
+
+          <!-- Certificaciones -->
+          <div v-else-if="expedienteTab === 'certificaciones'" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div class="modal-body space-y-4">
+              <div class="flex justify-end">
+                <button type="button" class="btn-primary text-sm" @click="addCertificacion">+ Agregar certificación</button>
+              </div>
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-xs uppercase text-slate-500 border-b dark:border-slate-600">
+                    <th class="py-2 text-left">Nombre</th>
+                    <th class="py-2 text-left">Institución</th>
+                    <th class="py-2 text-left">Emisión</th>
+                    <th class="py-2 text-left">Vencimiento</th>
+                    <th class="py-2 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="c in certificacionList" :key="c.ID_CERTIFICACION" class="border-b dark:border-slate-700">
+                    <td class="py-2">{{ c.NOMBRE }}</td>
+                    <td class="py-2">{{ c.INSTITUCION || '—' }}</td>
+                    <td class="py-2">{{ fmtDate(c.FECHA_EMISION) }}</td>
+                    <td class="py-2">{{ fmtDate(c.FECHA_VENCIMIENTO) }}</td>
+                    <td class="py-2 text-right space-x-1">
+                      <IconActionButton variant="edit" @click="editCertificacion(c)" />
+                      <IconActionButton variant="delete" @click="deleteCertificacion(c)" />
+                    </td>
+                  </tr>
+                  <tr v-if="!certificacionList.length"><td colspan="5" class="py-4 text-center text-slate-400">Sin registros.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" @click="closeModal">Cerrar</button>
+            </div>
+          </div>
+
+          <!-- Dependientes -->
+          <div v-else-if="expedienteTab === 'dependientes'" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div class="modal-body space-y-4">
+              <div class="flex justify-end">
+                <button type="button" class="btn-primary text-sm" @click="addDependiente">+ Agregar dependiente</button>
+              </div>
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-xs uppercase text-slate-500 border-b dark:border-slate-600">
+                    <th class="py-2 text-left">Nombres</th>
+                    <th class="py-2 text-left">Apellidos</th>
+                    <th class="py-2 text-left">Parentesco</th>
+                    <th class="py-2 text-left">Nacimiento</th>
+                    <th class="py-2 text-left">Documento</th>
+                    <th class="py-2 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="d in dependienteList" :key="d.ID_DEPENDIENTE" class="border-b dark:border-slate-700">
+                    <td class="py-2">{{ d.NOMBRES }}</td>
+                    <td class="py-2">{{ d.APELLIDOS || '—' }}</td>
+                    <td class="py-2">{{ d.PARENTESCO }}</td>
+                    <td class="py-2">{{ fmtDate(d.FECHA_NACIMIENTO) }}</td>
+                    <td class="py-2">{{ d.DOCUMENTO_IDENTIDAD || '—' }}</td>
+                    <td class="py-2 text-right space-x-1">
+                      <IconActionButton variant="edit" @click="editDependiente(d)" />
+                      <IconActionButton variant="delete" @click="deleteDependiente(d)" />
+                    </td>
+                  </tr>
+                  <tr v-if="!dependienteList.length"><td colspan="6" class="py-4 text-center text-slate-400">Sin registros.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" @click="closeModal">Cerrar</button>
+            </div>
+          </div>
         </div>
       </AppModalShell>
     </div>
@@ -267,6 +391,7 @@ import PaginationBar from '../../components/PaginationBar.vue';
 import AppModalShell from '../../components/AppModalShell.vue';
 import { usePaginatedList } from '../../composables/usePaginatedList';
 import { GENERO_OPTIONS, ACTIVO_BOOL_OPTIONS } from '../../utils/staticSelectOptions';
+import { getApiErrorMessage } from '../../utils/apiError';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { useToast } from '../../composables/useToast';
@@ -317,6 +442,223 @@ const isEditing = ref(false);
 const modalError = ref('');
 const selectedGeoDepto = ref('');
 const selectedGeoMuni = ref('');
+
+// ── Expediente ampliado (tabs del modal) ────────────────────────────────────
+const expedienteTabs = [
+  { key: 'datos', label: 'Datos' },
+  { key: 'educacion', label: 'Educación' },
+  { key: 'certificaciones', label: 'Certificaciones' },
+  { key: 'dependientes', label: 'Dependientes' },
+];
+const expedienteTab = ref('datos');
+const educacionList = ref([]);
+const certificacionList = ref([]);
+const dependienteList = ref([]);
+const educacionOptions = ref([]);
+
+const loadEducacionOptions = async () => {
+  try {
+    const { data } = await api.get('/catalogs/educaciones/select', { params: { per_page: 100 } });
+    educacionOptions.value = data.data ?? data;
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+function fmtDate(d) {
+  return d ? new Date(d).toLocaleDateString('es-SV') : '—';
+}
+
+const loadEducacion = async () => {
+  if (!form.value.ID_EMPLEADO) return;
+  const { data } = await api.get(`/empleados/${form.value.ID_EMPLEADO}/educacion`, { params: { per_page: 100 } });
+  educacionList.value = data.data ?? data;
+};
+
+const addEducacion = async () => {
+  const values = await dialog.form({
+    title: 'Agregar educación',
+    confirmText: 'Guardar',
+    fields: [
+      { name: 'ID_EDUCACIONACADEMICA', type: 'select', label: 'Nivel Educativo', options: educacionOptions.value },
+      { name: 'TITULO_OBTENIDO', type: 'text', label: 'Título Obtenido', placeholder: 'Ej. Licenciatura en...' },
+      { name: 'INSTITUCION', type: 'text', label: 'Institución' },
+      { name: 'FECHA_GRADUACION', type: 'text', label: 'Fecha de Graduación (YYYY-MM-DD)' },
+    ],
+  });
+  if (!values) return;
+  try {
+    await api.post(`/empleados/${form.value.ID_EMPLEADO}/educacion`, values);
+    loadEducacion();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo guardar el registro.'), variant: 'danger' });
+  }
+};
+
+const editEducacion = async (item) => {
+  const values = await dialog.form({
+    title: 'Editar educación',
+    confirmText: 'Guardar',
+    fields: [
+      { name: 'ID_EDUCACIONACADEMICA', type: 'select', label: 'Nivel Educativo', options: educacionOptions.value, defaultValue: item.ID_EDUCACIONACADEMICA ?? '' },
+      { name: 'TITULO_OBTENIDO', type: 'text', label: 'Título Obtenido', defaultValue: item.TITULO_OBTENIDO ?? '' },
+      { name: 'INSTITUCION', type: 'text', label: 'Institución', defaultValue: item.INSTITUCION ?? '' },
+      { name: 'FECHA_GRADUACION', type: 'text', label: 'Fecha de Graduación (YYYY-MM-DD)', defaultValue: item.FECHA_GRADUACION ? item.FECHA_GRADUACION.split('T')[0] : '' },
+    ],
+  });
+  if (!values) return;
+  try {
+    await api.put(`/empleados/${form.value.ID_EMPLEADO}/educacion/${item.ID_EMPLEADO_EDUCACION}`, values);
+    loadEducacion();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo actualizar el registro.'), variant: 'danger' });
+  }
+};
+
+const deleteEducacion = async (item) => {
+  if (!await dialog.confirm({
+    title: 'Eliminar educación',
+    message: `¿Eliminar el registro "${item.TITULO_OBTENIDO || item.EDUCACION_NOMBRE || 'educación'}"?`,
+    variant: 'danger',
+    confirmText: 'Sí, eliminar',
+  })) return;
+  try {
+    await api.delete(`/empleados/${form.value.ID_EMPLEADO}/educacion/${item.ID_EMPLEADO_EDUCACION}`);
+    loadEducacion();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo eliminar el registro.'), variant: 'danger' });
+  }
+};
+
+const loadCertificaciones = async () => {
+  if (!form.value.ID_EMPLEADO) return;
+  const { data } = await api.get(`/empleados/${form.value.ID_EMPLEADO}/certificaciones`, { params: { per_page: 100 } });
+  certificacionList.value = data.data ?? data;
+};
+
+const addCertificacion = async () => {
+  const values = await dialog.form({
+    title: 'Agregar certificación',
+    confirmText: 'Guardar',
+    fields: [
+      { name: 'NOMBRE', type: 'text', label: 'Nombre', required: true },
+      { name: 'INSTITUCION', type: 'text', label: 'Institución' },
+      { name: 'FECHA_EMISION', type: 'text', label: 'Fecha de Emisión (YYYY-MM-DD)' },
+      { name: 'FECHA_VENCIMIENTO', type: 'text', label: 'Fecha de Vencimiento (YYYY-MM-DD)' },
+    ],
+  });
+  if (!values) return;
+  try {
+    await api.post(`/empleados/${form.value.ID_EMPLEADO}/certificaciones`, values);
+    loadCertificaciones();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo guardar el registro.'), variant: 'danger' });
+  }
+};
+
+const editCertificacion = async (item) => {
+  const values = await dialog.form({
+    title: 'Editar certificación',
+    confirmText: 'Guardar',
+    fields: [
+      { name: 'NOMBRE', type: 'text', label: 'Nombre', required: true, defaultValue: item.NOMBRE ?? '' },
+      { name: 'INSTITUCION', type: 'text', label: 'Institución', defaultValue: item.INSTITUCION ?? '' },
+      { name: 'FECHA_EMISION', type: 'text', label: 'Fecha de Emisión (YYYY-MM-DD)', defaultValue: item.FECHA_EMISION ? item.FECHA_EMISION.split('T')[0] : '' },
+      { name: 'FECHA_VENCIMIENTO', type: 'text', label: 'Fecha de Vencimiento (YYYY-MM-DD)', defaultValue: item.FECHA_VENCIMIENTO ? item.FECHA_VENCIMIENTO.split('T')[0] : '' },
+    ],
+  });
+  if (!values) return;
+  try {
+    await api.put(`/empleados/${form.value.ID_EMPLEADO}/certificaciones/${item.ID_CERTIFICACION}`, values);
+    loadCertificaciones();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo actualizar el registro.'), variant: 'danger' });
+  }
+};
+
+const deleteCertificacion = async (item) => {
+  if (!await dialog.confirm({
+    title: 'Eliminar certificación',
+    message: `¿Eliminar "${item.NOMBRE}"?`,
+    variant: 'danger',
+    confirmText: 'Sí, eliminar',
+  })) return;
+  try {
+    await api.delete(`/empleados/${form.value.ID_EMPLEADO}/certificaciones/${item.ID_CERTIFICACION}`);
+    loadCertificaciones();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo eliminar el registro.'), variant: 'danger' });
+  }
+};
+
+const loadDependientes = async () => {
+  if (!form.value.ID_EMPLEADO) return;
+  const { data } = await api.get(`/empleados/${form.value.ID_EMPLEADO}/dependientes`, { params: { per_page: 100 } });
+  dependienteList.value = data.data ?? data;
+};
+
+const addDependiente = async () => {
+  const values = await dialog.form({
+    title: 'Agregar dependiente',
+    confirmText: 'Guardar',
+    fields: [
+      { name: 'NOMBRES', type: 'text', label: 'Nombres', required: true },
+      { name: 'APELLIDOS', type: 'text', label: 'Apellidos' },
+      { name: 'PARENTESCO', type: 'text', label: 'Parentesco', required: true, placeholder: 'Ej. Hijo/a, Cónyuge, Padre, Madre' },
+      { name: 'FECHA_NACIMIENTO', type: 'text', label: 'Fecha de Nacimiento (YYYY-MM-DD)' },
+      { name: 'DOCUMENTO_IDENTIDAD', type: 'text', label: 'Documento de Identidad' },
+    ],
+  });
+  if (!values) return;
+  try {
+    await api.post(`/empleados/${form.value.ID_EMPLEADO}/dependientes`, values);
+    loadDependientes();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo guardar el registro.'), variant: 'danger' });
+  }
+};
+
+const editDependiente = async (item) => {
+  const values = await dialog.form({
+    title: 'Editar dependiente',
+    confirmText: 'Guardar',
+    fields: [
+      { name: 'NOMBRES', type: 'text', label: 'Nombres', required: true, defaultValue: item.NOMBRES ?? '' },
+      { name: 'APELLIDOS', type: 'text', label: 'Apellidos', defaultValue: item.APELLIDOS ?? '' },
+      { name: 'PARENTESCO', type: 'text', label: 'Parentesco', required: true, defaultValue: item.PARENTESCO ?? '' },
+      { name: 'FECHA_NACIMIENTO', type: 'text', label: 'Fecha de Nacimiento (YYYY-MM-DD)', defaultValue: item.FECHA_NACIMIENTO ? item.FECHA_NACIMIENTO.split('T')[0] : '' },
+      { name: 'DOCUMENTO_IDENTIDAD', type: 'text', label: 'Documento de Identidad', defaultValue: item.DOCUMENTO_IDENTIDAD ?? '' },
+    ],
+  });
+  if (!values) return;
+  try {
+    await api.put(`/empleados/${form.value.ID_EMPLEADO}/dependientes/${item.ID_DEPENDIENTE}`, values);
+    loadDependientes();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo actualizar el registro.'), variant: 'danger' });
+  }
+};
+
+const deleteDependiente = async (item) => {
+  if (!await dialog.confirm({
+    title: 'Eliminar dependiente',
+    message: `¿Eliminar a "${item.NOMBRES}"?`,
+    variant: 'danger',
+    confirmText: 'Sí, eliminar',
+  })) return;
+  try {
+    await api.delete(`/empleados/${form.value.ID_EMPLEADO}/dependientes/${item.ID_DEPENDIENTE}`);
+    loadDependientes();
+  } catch (err) {
+    await dialog.alert({ title: 'Error', message: getApiErrorMessage(err, 'No se pudo eliminar el registro.'), variant: 'danger' });
+  }
+};
+
+watch(expedienteTab, (tab) => {
+  if (tab === 'educacion') loadEducacion();
+  else if (tab === 'certificaciones') loadCertificaciones();
+  else if (tab === 'dependientes') loadDependientes();
+});
 
 const catalogs = ref({
   empresas: [],
@@ -372,6 +714,7 @@ const loadCatalogs = async () => {
 onMounted(() => {
   loadEmpleados();
   loadCatalogs();
+  loadEducacionOptions();
 });
 
 const filteredGeoMunis = computed(() => {
@@ -424,6 +767,10 @@ const openCreateModal = () => {
   modalError.value = '';
   selectedGeoDepto.value = '';
   selectedGeoMuni.value = '';
+  expedienteTab.value = 'datos';
+  educacionList.value = [];
+  certificacionList.value = [];
+  dependienteList.value = [];
   form.value = {
     ID_EMPLEADO: null,
     ID_EMPRESA: catalogs.value.empresas[0]?.ID_EMPRESA || '',
@@ -470,6 +817,10 @@ const resolveGeoHierarchy = (distritoId) => {
 const editEmpleado = (emp) => {
   isEditing.value = false; // set false temporarily to not trigger code auto-generation during hydration
   modalError.value = '';
+  expedienteTab.value = 'datos';
+  educacionList.value = [];
+  certificacionList.value = [];
+  dependienteList.value = [];
   form.value = {
     ...emp,
     FECHANACIMIENTO: emp.FECHANACIMIENTO ? emp.FECHANACIMIENTO.split('T')[0] : '',

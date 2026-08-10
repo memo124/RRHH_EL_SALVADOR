@@ -10,6 +10,11 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Iniciar sesión y obtener token Bearer Sanctum.
+     *
+     * @unauthenticated
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -62,8 +67,10 @@ class AuthController extends Controller
                 'username' => $user->USUARIO,
                 'email' => $user->EMAIL,
                 'theme' => $user->TEMA ?? 'auto',
+                'id_empleado' => $user->ID_EMPLEADO,
+                'is_employee_portal' => $this->isEmployeePortalUser($user, $permissions),
                 'permissions' => $permissions,
-                'menu' => $this->buildMenu($permissions)
+                'menu' => $this->buildMenu($permissions, $user->ID_EMPLEADO)
             ]
         ]);
     }
@@ -93,8 +100,10 @@ class AuthController extends Controller
             'username' => $user->USUARIO,
             'email' => $user->EMAIL,
             'theme' => $user->TEMA ?? 'auto',
+            'id_empleado' => $user->ID_EMPLEADO,
+            'is_employee_portal' => $this->isEmployeePortalUser($user, $permissions),
             'permissions' => $permissions,
-            'menu' => $this->buildMenu($permissions)
+            'menu' => $this->buildMenu($permissions, $user->ID_EMPLEADO)
         ]);
     }
 
@@ -111,9 +120,41 @@ class AuthController extends Controller
         return response()->json(['theme' => $user->TEMA]);
     }
 
-    private function buildMenu($permissions)
+    /**
+     * Determina si el usuario debe operar bajo el Portal Empleado (autoservicio):
+     * requiere ID_EMPLEADO vinculado y permisos PORTAL_* sin acceso administrativo (SALARIAL_VIEW).
+     */
+    private function isEmployeePortalUser(Usuario $user, $permissions): bool
+    {
+        if (!$user->ID_EMPLEADO) {
+            return false;
+        }
+
+        $hasPortalAccess = $permissions->contains(fn ($codigo) => str_starts_with($codigo, 'PORTAL_'));
+        $hasAdminAccess = $permissions->contains('SALARIAL_VIEW');
+
+        return $hasPortalAccess && !$hasAdminAccess;
+    }
+
+    private function buildMenu($permissions, $idEmpleado = null)
     {
         $menu = [];
+
+        if ($permissions->contains('PORTAL_VIEW') && $idEmpleado) {
+            $menu[] = [
+                'group' => 'Mi portal',
+                'icon' => 'user',
+                'options' => [
+                    ['name' => 'Inicio', 'route' => '/portal'],
+                    ['name' => 'Mis boletas de pago', 'route' => '/portal/boletas'],
+                    ['name' => 'Permisos y vacaciones', 'route' => '/portal/permisos'],
+                    ['name' => 'Encuestas', 'route' => '/portal/encuestas'],
+                    ['name' => 'Evaluación de desempeño', 'route' => '/portal/evaluaciones'],
+                    ['name' => 'Mi perfil', 'route' => '/portal/perfil'],
+                ]
+            ];
+        }
+
         if ($permissions->contains('GEOGRAFIA_VIEW')) {
             $menu[] = [
                 'group' => 'Geográfico',
@@ -162,6 +203,21 @@ class AuthController extends Controller
                 ]
             ];
         }
+        if ($permissions->contains('SALARIAL_VIEW')) {
+            $menu[] = [
+                'group' => 'Cumplimiento SV',
+                'icon' => 'landmark',
+                'options' => [
+                    ['name' => 'Planilla ISSS', 'route' => '/cumplimiento/isss'],
+                    ['name' => 'Planilla AFP', 'route' => '/cumplimiento/afp'],
+                    ['name' => 'INSAFORP', 'route' => '/cumplimiento/insaforp'],
+                    ['name' => 'F-14 / Renta retenida MH', 'route' => '/cumplimiento/renta'],
+                    ['name' => 'Altas y bajas ISSS', 'route' => '/cumplimiento/isss-movimientos'],
+                    ['name' => 'Aguinaldo (corrida)', 'route' => '/aguinaldo'],
+                    ['name' => 'Retención 10% servicios profesionales', 'route' => '/cumplimiento/retencion10'],
+                ]
+            ];
+        }
         if ($permissions->contains('CONTRATO_VIEW')) {
             $menu[] = [
                 'group' => 'Contratos Laborales',
@@ -199,6 +255,23 @@ class AuthController extends Controller
                 'icon' => 'shield',
                 'options' => [
                     ['name' => 'Control de Acceso', 'route' => '/seguridad']
+                ]
+            ];
+        }
+        if ($permissions->contains('GESTION_HUMANA_VIEW')) {
+            $menu[] = [
+                'group' => 'Gestión Humana',
+                'icon' => 'heart-handshake',
+                'options' => [
+                    ['name' => 'Calendario', 'route' => '/calendario'],
+                    ['name' => 'Encuestas', 'route' => '/encuestas'],
+                    ['name' => 'Formularios / Actualización de datos', 'route' => '/formularios-empleado'],
+                    ['name' => 'Documentos del empleado', 'route' => '/documentos-empleado'],
+                    ['name' => 'Vacaciones y permisos', 'route' => '/vacaciones-permisos'],
+                    ['name' => 'Capacitaciones', 'route' => '/capacitaciones'],
+                    ['name' => 'Reclutamiento', 'route' => '/reclutamiento'],
+                    ['name' => 'Evaluación de desempeño', 'route' => '/evaluaciones'],
+                    ['name' => 'Actividades económicas MH', 'route' => '/actividades-economicas'],
                 ]
             ];
         }

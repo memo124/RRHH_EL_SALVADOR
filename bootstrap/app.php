@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'permission' => \App\Http\Middleware\AuthorizationMiddleware::class,
+            'portal.employee' => \App\Http\Middleware\EnsureEmployeePortal::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

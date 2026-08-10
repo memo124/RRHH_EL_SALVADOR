@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\TipoDescuento;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DescuentoEmpleadoController extends Controller
 {
     use PaginatesQueries;
+
+    public function __construct(protected AuditService $audit) {}
 
     public function index(Request $request)
     {
@@ -70,6 +73,16 @@ class DescuentoEmpleadoController extends Controller
             'OBSERVACIONES' => $request->OBSERVACIONES,
         ]);
 
+        $this->audit->log(
+            'DESCUENTO_EMPLEADO',
+            $maxId + 1,
+            'create',
+            null,
+            $this->audit->sanitize(DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $maxId + 1)->first()),
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
+
         return response()->json(['ID_DESCUENTOEMPLEADO' => $maxId + 1, 'message' => 'Descuento registrado correctamente.'], 201);
     }
 
@@ -92,6 +105,8 @@ class DescuentoEmpleadoController extends Controller
             return response()->json(['message' => 'El tipo seleccionado no corresponde a un descuento voluntario.'], 422);
         }
 
+        $before = $this->audit->sanitize(DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $id)->first());
+
         DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $id)->update([
             'ID_TIPODESCUENTO' => $request->ID_TIPODESCUENTO,
             'MONTO' => round((float) ($request->MONTO ?? 0), 2),
@@ -103,6 +118,16 @@ class DescuentoEmpleadoController extends Controller
             'ESACTIVO' => $request->ESACTIVO ?? true,
             'OBSERVACIONES' => $request->OBSERVACIONES,
         ]);
+
+        $this->audit->log(
+            'DESCUENTO_EMPLEADO',
+            $id,
+            'update',
+            $before,
+            $this->audit->sanitize(DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $id)->first()),
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
 
         return response()->json(['message' => 'Descuento actualizado correctamente.']);
     }
@@ -140,9 +165,14 @@ class DescuentoEmpleadoController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $before = $this->audit->sanitize(DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $id)->first());
+
         DB::table('DESCUENTO_EMPLEADO')->where('ID_DESCUENTOEMPLEADO', $id)->update(['ESACTIVO' => false]);
+
+        $this->audit->log('DESCUENTO_EMPLEADO', $id, 'delete', $before, null, $request->user()?->ID_USUARIO, $request->ip());
+
         return response()->json(['message' => 'Descuento inactivado correctamente.']);
     }
 }

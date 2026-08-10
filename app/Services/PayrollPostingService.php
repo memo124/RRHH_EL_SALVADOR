@@ -43,6 +43,33 @@ class PayrollPostingService
     }
 
     /**
+     * Revierte abonos de un único detalle de planilla (recálculo parcial).
+     */
+    public function reverseLoanPaymentsForDetalle(int $detallePlanillaId): void
+    {
+        $abonos = DB::table('PRESTAMO_ABONO')
+            ->where('ID_DETALLEPLANILLA', $detallePlanillaId)
+            ->get();
+
+        foreach ($abonos as $abono) {
+            DB::table('PRESTAMOS')
+                ->where('ID_PRESTAMO', $abono->ID_PRESTAMO)
+                ->increment('SALDO_ACTUAL', $abono->MONTOABONADO);
+
+            DB::table('PRESTAMOS')
+                ->where('ID_PRESTAMO', $abono->ID_PRESTAMO)
+                ->update([
+                    'PRESTAMOESTADO' => true,
+                    'FECHAFINALIZACION' => null,
+                ]);
+        }
+
+        DB::table('PRESTAMO_ABONO')
+            ->where('ID_DETALLEPLANILLA', $detallePlanillaId)
+            ->delete();
+    }
+
+    /**
      * Registra abonos de cuotas de préstamo y actualiza saldos.
      */
     public function postLoanPayments(int $empleadoId, int $detallePlanillaId, Planilla $planilla): void

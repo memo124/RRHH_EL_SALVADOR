@@ -56,6 +56,7 @@
                   </button>
                   <button v-if="plan.RECALCULADA && !plan.CERRADA && !plan.ANULADA" @click="cerrarPlanilla(plan)" class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-semibold">Cerrar</button>
                   <button v-if="plan.CERRADA && !plan.CONTABILIZADA && !plan.ANULADA" @click="contabilizarPlanilla(plan)" class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">Contabilizar</button>
+                  <button v-if="plan.CONTABILIZADA" @click="verAsiento(plan)" class="px-2.5 py-1 bg-violet-50 text-violet-700 rounded text-xs font-semibold">Ver asiento</button>
                   <button v-if="!plan.ANULADA && !plan.CONTABILIZADA" @click="anularPlanilla(plan)" class="px-2.5 py-1 bg-rose-50 text-rose-700 rounded text-xs font-semibold">Anular</button>
                 </td>
               </tr>
@@ -287,6 +288,56 @@
         @close="showBankExport = false"
       />
 
+      <!-- Modal: Asiento Contable -->
+      <AppModalShell :open="showAsientoModal" @close="showAsientoModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
+          <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
+            <h3 class="text-base font-bold text-slate-950 dark:text-white">Asiento Contable — Planilla #{{ asientoPlanillaId }}</h3>
+            <button @click="showAsientoModal = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
+          </div>
+          <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <p v-if="loadingAsiento" class="text-sm text-slate-500 text-center py-6">Cargando…</p>
+            <template v-else-if="asientoData">
+              <div class="text-sm text-slate-600 dark:text-slate-300">
+                <p><span class="font-semibold">Concepto:</span> {{ asientoData.asiento.CONCEPTO }}</p>
+                <p><span class="font-semibold">Fecha:</span> {{ formatDate(asientoData.asiento.FECHA) }}</p>
+              </div>
+              <div class="table-shell overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 font-semibold uppercase border-b border-slate-200">
+                      <th class="px-3 py-2">Cuenta</th>
+                      <th class="px-3 py-2">Descripción</th>
+                      <th class="px-3 py-2 text-right">Debe</th>
+                      <th class="px-3 py-2 text-right">Haber</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                    <tr v-for="det in asientoData.detalles" :key="det.ID_DETALLE">
+                      <td class="px-3 py-2 font-mono">{{ det.CUENTA }}</td>
+                      <td class="px-3 py-2">{{ det.DESCRIPCION }}</td>
+                      <td class="px-3 py-2 text-right">{{ det.DEBE > 0 ? fmt(det.DEBE) : '' }}</td>
+                      <td class="px-3 py-2 text-right">{{ det.HABER > 0 ? fmt(det.HABER) : '' }}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="font-bold border-t-2 border-slate-300 dark:border-slate-600">
+                      <td class="px-3 py-2" colspan="2">TOTALES</td>
+                      <td class="px-3 py-2 text-right">{{ fmt(asientoData.asiento.TOTAL_DEBE) }}</td>
+                      <td class="px-3 py-2 text-right">{{ fmt(asientoData.asiento.TOTAL_HABER) }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div class="flex justify-end">
+                <button @click="exportAsientoCsv" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold">Exportar CSV</button>
+              </div>
+            </template>
+            <p v-else class="text-sm text-slate-500 text-center py-6">No se encontró el asiento contable.</p>
+          </div>
+        </div>
+      </AppModalShell>
+
       <!-- Create Modal -->
       <AppModalShell :open="showModal" @close="showModal = false">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
@@ -354,6 +405,7 @@ import { FORMA_PAGO_OPTIONS } from '../../utils/staticSelectOptions';
 import api from '../../services/api';
 import { dialog } from '../../composables/useDialog';
 import { usePlanillaReports } from '../../composables/usePlanillaReports';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { buildPlanillaSheetRows, downloadXlsx } from '../../utils/exportXlsx';
 import {
   collectConceptosDescuento,
@@ -467,6 +519,10 @@ const loadingDetails= ref(false);
 const calculating   = ref(false);
 const showModal     = ref(false);
 const showBankExport = ref(false);
+const showAsientoModal = ref(false);
+const asientoData = ref(null);
+const asientoPlanillaId = ref(null);
+const loadingAsiento = ref(false);
 const modalError    = ref('');
 const payrollDetails  = ref([]);
 const payrollTotales  = ref({ COUNT: 0, TOTAL_DEVENGADO: 0, AFP_EMPLEADO: 0, ISSS_EMPLEADO: 0, RENTA_EMPLEADO: 0, PRESTAMOS: 0, OTRO_DESCUENTOS: 0, TOTAL_DEDUCCIONES: 0, LIQUIDO_A_RECIBIR: 0, AFP_PATRONAL: 0, ISSS_PATRONAL: 0, INSAFORP_PATRONAL: 0 });
@@ -719,6 +775,42 @@ const anularPlanilla = async (plan) => {
   loadPlanillas();
 };
 const contabilizarPlanilla = async (plan) => { await api.post(`/planillas/${plan.ID_PLANILLA}/contabilizar`); loadPlanillas(); };
+
+const verAsiento = async (plan) => {
+  asientoPlanillaId.value = plan.ID_PLANILLA;
+  asientoData.value = null;
+  showAsientoModal.value = true;
+  loadingAsiento.value = true;
+  try {
+    const res = await api.get(`/planillas/${plan.ID_PLANILLA}/asiento`);
+    asientoData.value = res.data;
+  } catch (err) {
+    asientoData.value = null;
+    toast.error('Error al cargar asiento', getApiErrorMessage(err));
+  } finally {
+    loadingAsiento.value = false;
+  }
+};
+
+const exportAsientoCsv = async () => {
+  if (!asientoPlanillaId.value) return;
+  try {
+    const res = await api.get(`/planillas/${asientoPlanillaId.value}/asiento/export`, {
+      params: { format: 'csv' },
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `asiento_planilla_${asientoPlanillaId.value}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    toast.error('Error al exportar', getApiErrorMessage(err));
+  }
+};
 
 const viewDetails = async (plan) => {
   selectedPayroll.value = plan;

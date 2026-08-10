@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\DB;
 class PlanillaLifecycleService
 {
     protected $posting;
+    protected $accounting;
 
-    public function __construct(PayrollPostingService $posting)
+    public function __construct(PayrollPostingService $posting, AccountingPostingService $accounting)
     {
         $this->posting = $posting;
+        $this->accounting = $accounting;
     }
 
     public function cerrar(int $planillaId): void
@@ -53,7 +55,7 @@ class PlanillaLifecycleService
         ]);
     }
 
-    public function contabilizar(int $planillaId, ?string $usuario = null): void
+    public function contabilizar(int $planillaId, ?string $usuario = null, ?int $idUsuario = null): void
     {
         $planilla = DB::table('PLANILLA')->where('ID_PLANILLA', $planillaId)->first();
         if (!$planilla) {
@@ -66,9 +68,13 @@ class PlanillaLifecycleService
             throw new \RuntimeException('No se puede contabilizar una planilla anulada.');
         }
 
-        DB::table('PLANILLA')->where('ID_PLANILLA', $planillaId)->update([
-            'CONTABILIZADA' => true,
-            'AUTORIZADAPOR' => $usuario,
-        ]);
+        DB::transaction(function () use ($planillaId, $usuario, $idUsuario) {
+            DB::table('PLANILLA')->where('ID_PLANILLA', $planillaId)->update([
+                'CONTABILIZADA' => true,
+                'AUTORIZADAPOR' => $usuario,
+            ]);
+
+            $this->accounting->contabilizar($planillaId, $idUsuario);
+        });
     }
 }

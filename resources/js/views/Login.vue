@@ -75,7 +75,7 @@ const handleLogin = async () => {
     localStorage.setItem('token', response.data.token);
     localStorage.setItem('user', JSON.stringify(response.data.user));
     loadUserTheme(response.data.user.theme);
-    router.push('/');
+    router.push(response.data.user.is_employee_portal ? '/portal' : '/');
   } catch (err) {
     error.value = err.response?.data?.error || err.response?.data?.message || 'Error de conexión.';
   } finally {

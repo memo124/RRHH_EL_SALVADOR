@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\TipoDescuento;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PrestamosController extends Controller
 {
     use PaginatesQueries;
+
+    public function __construct(protected AuditService $audit) {}
 
     public function index(Request $request)
     {
@@ -212,6 +215,16 @@ class PrestamosController extends Controller
             'OBSERVACIONES' => $request->OBSERVACIONES,
         ]);
 
+        $this->audit->log(
+            'PRESTAMOS',
+            $maxId + 1,
+            'create',
+            null,
+            $this->audit->sanitize(DB::table('PRESTAMOS')->where('ID_PRESTAMO', $maxId + 1)->first()),
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
+
         return response()->json(['ID_PRESTAMO' => $maxId + 1, 'message' => 'Préstamo registrado correctamente.'], 201);
     }
 
@@ -244,12 +257,22 @@ class PrestamosController extends Controller
 
         if (!empty($updates)) {
             DB::table('PRESTAMOS')->where('ID_PRESTAMO', $id)->update($updates);
+
+            $this->audit->log(
+                'PRESTAMOS',
+                $id,
+                'update',
+                $this->audit->sanitize($prestamo),
+                $this->audit->sanitize(DB::table('PRESTAMOS')->where('ID_PRESTAMO', $id)->first()),
+                $request->user()?->ID_USUARIO,
+                $request->ip()
+            );
         }
 
         return response()->json(['message' => 'Préstamo actualizado correctamente.']);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $prestamo = DB::table('PRESTAMOS')->where('ID_PRESTAMO', $id)->first();
         if (!$prestamo) {
@@ -260,6 +283,16 @@ class PrestamosController extends Controller
             'PRESTAMOESTADO' => false,
             'FECHAFINALIZACION' => now(),
         ]);
+
+        $this->audit->log(
+            'PRESTAMOS',
+            $id,
+            'delete',
+            $this->audit->sanitize($prestamo),
+            null,
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
 
         return response()->json(['message' => 'Préstamo cancelado correctamente.']);
     }

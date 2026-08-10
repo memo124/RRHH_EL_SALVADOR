@@ -200,11 +200,18 @@ class CatalogSelectController extends Controller
                 'search' => ['NOMBREBANCO', 'ALIAS'],
                 'where' => ['BANCOACTIVO' => true],
             ],
+            'paises' => [
+                'table' => 'PAIS',
+                'id' => 'ID_PAIS',
+                'label' => 'NOMBREPAIS',
+                'search' => ['NOMBREPAIS', 'CODIGO_MH'],
+            ],
             'departamentos-pais' => [
                 'table' => 'DEPARTAMENTO_PAIS',
                 'id' => 'ID_DEPARTAMENTOPAIS',
                 'label' => 'NOMBREDEPARTAMENTO',
                 'search' => ['NOMBREDEPARTAMENTO'],
+                'filters' => ['ID_PAIS' => 'ID_PAIS'],
             ],
             'municipios' => [
                 'table' => 'MUNICIPIO',
@@ -219,6 +226,21 @@ class CatalogSelectController extends Controller
                 'label' => 'NOMBREDISTRITO',
                 'search' => ['NOMBREDISTRITO'],
                 'filters' => ['ID_MUNICIPIO' => 'ID_MUNICIPIO'],
+            ],
+            'educaciones' => [
+                'table' => 'EDUCACION_ACADEMICA',
+                'id' => 'ID_EDUCACIONACADEMICA',
+                'label' => 'DESCRIPCION',
+                'search' => ['DESCRIPCION'],
+                'where' => ['ACTIVO' => true],
+            ],
+            'establecimientos' => [
+                'table' => 'ESTABLECIMIENTO',
+                'id' => 'ID_ESTABLECIMIENTO',
+                'label' => 'NOMBRE_ESTABLECIMIENTO',
+                'search' => ['NOMBRE_ESTABLECIMIENTO'],
+                'where' => ['ESACTIVO' => true],
+                'filters' => ['ID_EMPRESA' => 'ID_EMPRESA'],
             ],
             'tipos-incapacidad' => [
                 'table' => 'TIPO_INCAPACIDAD',
@@ -253,6 +275,16 @@ class CatalogSelectController extends Controller
                 'label' => 'TIPOINGRESO',
                 'search' => ['TIPOINGRESO'],
                 'where' => ['ESACTIVO' => true],
+            ],
+            'planillas-cerradas' => [
+                'table' => 'PLANILLA',
+                'id' => 'ID_PLANILLA',
+                'label' => 'TITULO',
+                'columns' => ['TITULO', 'FECHAPAGO'],
+                'search' => ['TITULO'],
+                'where' => ['CERRADA' => true, 'ANULADA' => false],
+                'filters' => ['ID_EMPRESA' => 'ID_EMPRESA'],
+                'order' => ['FECHAPAGO', 'desc'],
             ],
             'plantillas-contrato' => [
                 'table' => 'PLANTILLA_CONTRATO',
@@ -291,6 +323,13 @@ class CatalogSelectController extends Controller
                 $label .= ' (' . $row->GRUPO_NOMINA . ')';
             }
             return $label;
+        }
+
+        if ($type === 'planillas-cerradas') {
+            $titulo = trim($row->TITULO ?? '');
+            $fecha = !empty($row->FECHAPAGO) ? date('d/m/Y', strtotime($row->FECHAPAGO)) : '';
+
+            return $fecha ? "{$titulo} ({$fecha})" : $titulo;
         }
 
         if ($type === 'tipos-contratacion') {

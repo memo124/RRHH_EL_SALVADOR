@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthenticatesPrintRequests;
 use App\Services\PlanillaReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Laravel\Sanctum\PersonalAccessToken;
 use RuntimeException;
 
 class PlanillaReportController extends Controller
 {
+    use AuthenticatesPrintRequests;
+
     protected PlanillaReportService $reports;
 
     public function __construct(PlanillaReportService $reports)
@@ -123,25 +124,6 @@ class PlanillaReportController extends Controller
         }
 
         return $pdf->stream($filename);
-    }
-
-    protected function authenticatePrint(Request $request): void
-    {
-        if (Auth::check()) {
-            return;
-        }
-
-        $token = $request->query('token') ?? $request->bearerToken();
-        if (!$token) {
-            abort(401, 'No autenticado.');
-        }
-
-        $accessToken = PersonalAccessToken::findToken($token);
-        if (!$accessToken) {
-            abort(401, 'Token inválido.');
-        }
-
-        Auth::login($accessToken->tokenable);
     }
 
     /**

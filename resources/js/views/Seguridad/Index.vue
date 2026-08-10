@@ -196,6 +196,113 @@
         </div>
       </div>
 
+      <!-- ══ TAB: AUDITORÍA ═════════════════════════════════════════════════════ -->
+      <div v-if="activeTab === 'auditoria'" class="space-y-4">
+        <div class="flex flex-wrap gap-3 items-end table-shell p-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Tabla</label>
+            <select v-model="auditoriaFiltros.TABLA" class="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+              <option value="">Todas</option>
+              <option v-for="t in auditoriaTablas" :key="t" :value="t">{{ t }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Acción</label>
+            <select v-model="auditoriaFiltros.ACCION" class="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+              <option value="">Todas</option>
+              <option value="create">Creación</option>
+              <option value="update">Actualización</option>
+              <option value="delete">Eliminación</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Desde</label>
+            <input v-model="auditoriaFiltros.fecha_inicio" type="date" class="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Hasta</label>
+            <input v-model="auditoriaFiltros.fecha_fin" type="date" class="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+          </div>
+          <button @click="applyAuditoriaFiltros" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors">
+            Filtrar
+          </button>
+          <button @click="clearAuditoriaFiltros" class="px-4 py-2 border rounded-lg text-sm hover:bg-slate-50">
+            Limpiar
+          </button>
+        </div>
+
+        <SkeletonTable v-if="loadingAuditoria" />
+        <div v-else class="table-shell table-scroll">
+          <table v-table-cards class="table-cards w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase border-b border-slate-200">
+                <th class="px-6 py-4">Fecha</th>
+                <th class="px-6 py-4">Usuario</th>
+                <th class="px-6 py-4">Tabla</th>
+                <th class="px-6 py-4">Registro</th>
+                <th class="px-6 py-4">Acción</th>
+                <th class="px-6 py-4">IP</th>
+                <th class="px-6 py-4 text-right">Detalle</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+              <tr v-for="a in auditoria" :key="a.ID_AUDITORIA" class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                <td class="px-6 py-4 text-slate-500 whitespace-nowrap">{{ formatFecha(a.FECHA) }}</td>
+                <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ a.USUARIO_NOMBRE || '—' }}</td>
+                <td class="px-6 py-4"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs font-mono">{{ a.TABLA }}</span></td>
+                <td class="px-6 py-4 text-slate-500">{{ a.ID_REGISTRO || '—' }}</td>
+                <td class="px-6 py-4">
+                  <span :class="accionBadgeClass(a.ACCION)" class="px-2 py-0.5 rounded text-xs font-semibold">{{ accionLabel(a.ACCION) }}</span>
+                </td>
+                <td class="px-6 py-4 text-slate-500">{{ a.IP || '—' }}</td>
+                <td class="px-6 py-4 text-right">
+                  <button @click="viewAuditoriaDetalle(a)" class="text-indigo-600 hover:underline text-xs font-semibold">Ver</button>
+                </td>
+              </tr>
+              <tr v-if="!auditoria.length">
+                <td colspan="7" class="px-6 py-8 text-center text-slate-500">Sin registros de auditoría.</td>
+              </tr>
+            </tbody>
+          </table>
+          <PaginationBar
+            v-if="activeTab === 'auditoria'"
+            :page="auditoriaPage"
+            :last-page="auditoriaLastPage"
+            :per-page="auditoriaPerPage"
+            :total="auditoriaTotal"
+            :loading="loadingAuditoria"
+            @update:page="setAuditoriaPage"
+            @update:per-page="setAuditoriaPerPage"
+          />
+        </div>
+      </div>
+
+      <!-- ══ MODAL: DETALLE AUDITORÍA ═══════════════════════════════════════════ -->
+      <AppModalShell :open="showAuditoriaDetalle" @close="showAuditoriaDetalle = false">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
+          <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 flex justify-between items-center">
+            <h3 class="text-base font-bold text-slate-950 dark:text-white">Detalle de Auditoría #{{ auditoriaSeleccionada?.ID_AUDITORIA }}</h3>
+            <button @click="showAuditoriaDetalle = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg" aria-label="Cerrar"><AppIcon name="x" size="md" /></button>
+          </div>
+          <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div><span class="font-semibold text-slate-500">Tabla:</span> {{ auditoriaSeleccionada?.TABLA }}</div>
+              <div><span class="font-semibold text-slate-500">Registro:</span> {{ auditoriaSeleccionada?.ID_REGISTRO || '—' }}</div>
+              <div><span class="font-semibold text-slate-500">Acción:</span> {{ accionLabel(auditoriaSeleccionada?.ACCION) }}</div>
+              <div><span class="font-semibold text-slate-500">Fecha:</span> {{ formatFecha(auditoriaSeleccionada?.FECHA) }}</div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Antes</p>
+              <pre class="bg-slate-50 dark:bg-slate-900/40 p-3 rounded-lg text-xs overflow-x-auto">{{ formatJson(auditoriaSeleccionada?.BEFORE_JSON) }}</pre>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Después</p>
+              <pre class="bg-slate-50 dark:bg-slate-900/40 p-3 rounded-lg text-xs overflow-x-auto">{{ formatJson(auditoriaSeleccionada?.AFTER_JSON) }}</pre>
+            </div>
+          </div>
+        </div>
+      </AppModalShell>
+
       <!-- ══ MODAL: USUARIO CRUD ════════════════════════════════════════════════ -->
       <AppModalShell :open="showUserModal" @close="showUserModal = false">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-auto overflow-hidden border border-slate-200 dark:border-slate-700">
@@ -388,6 +495,9 @@ const tabs = computed(() => {
   if (perms.includes('ERROR_JOURNAL_VIEW')) {
     items.push({ key: 'errores', label: 'Errores del sistema' });
   }
+  if (perms.includes('SEGURIDAD_VIEW')) {
+    items.push({ key: 'auditoria', label: 'Auditoría' });
+  }
   return items;
 });
 
@@ -429,10 +539,28 @@ const {
   setPerPage: setRolesPerPage,
 } = usePaginatedList('/roles', { perPage: 25 });
 
+const {
+  items: auditoria,
+  loading: loadingAuditoria,
+  page: auditoriaPage,
+  perPage: auditoriaPerPage,
+  total: auditoriaTotal,
+  lastPage: auditoriaLastPage,
+  fetch: loadAuditoria,
+  setPage: setAuditoriaPage,
+  setPerPage: setAuditoriaPerPage,
+} = usePaginatedList('/auditoria', { perPage: 25 });
+
+const auditoriaTablas = ref([]);
+const auditoriaFiltros = ref({ TABLA: '', ACCION: '', fecha_inicio: '', fecha_fin: '' });
+const showAuditoriaDetalle = ref(false);
+const auditoriaSeleccionada = ref(null);
+
 const loading = computed(() => {
   if (activeTab.value === 'usuarios') return loadingUsuarios.value;
   if (activeTab.value === 'roles') return loadingRoles.value;
   if (activeTab.value === 'errores') return loadingErrores.value;
+  if (activeTab.value === 'auditoria') return loadingAuditoria.value;
   return loadingPermisos.value;
 });
 
@@ -511,6 +639,54 @@ const loadRolesCatalog = async () => {
   }
 };
 
+const loadAuditoriaTablas = async () => {
+  try {
+    const res = await api.get('/auditoria/tablas');
+    auditoriaTablas.value = Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    auditoriaTablas.value = [];
+  }
+};
+
+const applyAuditoriaFiltros = () => {
+  const filtros = {};
+  if (auditoriaFiltros.value.TABLA) filtros.TABLA = auditoriaFiltros.value.TABLA;
+  if (auditoriaFiltros.value.ACCION) filtros.ACCION = auditoriaFiltros.value.ACCION;
+  if (auditoriaFiltros.value.fecha_inicio) filtros.fecha_inicio = auditoriaFiltros.value.fecha_inicio;
+  if (auditoriaFiltros.value.fecha_fin) filtros.fecha_fin = auditoriaFiltros.value.fecha_fin;
+  setAuditoriaPage(1);
+  loadAuditoria(filtros);
+};
+
+const clearAuditoriaFiltros = () => {
+  auditoriaFiltros.value = { TABLA: '', ACCION: '', fecha_inicio: '', fecha_fin: '' };
+  loadAuditoria();
+};
+
+const viewAuditoriaDetalle = (a) => {
+  auditoriaSeleccionada.value = a;
+  showAuditoriaDetalle.value = true;
+};
+
+const accionLabel = (accion) => ({ create: 'Creación', update: 'Actualización', delete: 'Eliminación' }[accion] || accion || '—');
+
+const accionBadgeClass = (accion) => ({
+  create: 'bg-emerald-50 text-emerald-700',
+  update: 'bg-amber-50 text-amber-700',
+  delete: 'bg-rose-50 text-rose-700',
+}[accion] || 'bg-slate-100 text-slate-700');
+
+const formatFecha = (fecha) => (fecha ? new Date(fecha).toLocaleString('es-SV') : '—');
+
+const formatJson = (json) => {
+  if (!json) return '—';
+  try {
+    return JSON.stringify(typeof json === 'string' ? JSON.parse(json) : json, null, 2);
+  } catch {
+    return String(json);
+  }
+};
+
 const loadData = async () => {
   await Promise.all([loadUsuarios(), loadRoles(), loadPermisos(), loadRolesCatalog()]);
 };
@@ -519,6 +695,10 @@ onMounted(loadData);
 
 watch(activeTab, (tab) => {
   if (tab === 'errores') loadErrorFiles();
+  if (tab === 'auditoria' && !auditoria.value.length) {
+    loadAuditoria();
+    loadAuditoriaTablas();
+  }
 });
 
 // ── Usuario handlers ──────────────────────────────────────────────────────────

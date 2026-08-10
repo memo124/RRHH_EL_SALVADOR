@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PaginatesQueries;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Hash;
 class SeguridadController extends Controller
 {
     use PaginatesQueries;
+
+    public function __construct(protected AuditService $audit) {}
 
     // ─── ROLES ────────────────────────────────────────────────────────────────
 
@@ -176,6 +179,16 @@ class SeguridadController extends Controller
             ]);
         }
 
+        $this->audit->log(
+            'USUARIO',
+            $id,
+            'create',
+            null,
+            $this->audit->sanitize(DB::table('USUARIO')->where('ID_USUARIO', $id)->first(), ['CONTRASENA_HASH']),
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
+
         return response()->json(['ID_USUARIO' => $id, 'message' => 'Usuario creado correctamente.'], 201);
     }
 
@@ -203,6 +216,8 @@ class SeguridadController extends Controller
             $data['CONTRASENA_HASH'] = Hash::make($request->CONTRASENA);
         }
 
+        $before = $this->audit->sanitize(DB::table('USUARIO')->where('ID_USUARIO', $id)->first(), ['CONTRASENA_HASH']);
+
         DB::table('USUARIO')->where('ID_USUARIO', $id)->update($data);
 
         DB::table('USUARIO_ROL')->where('ID_USUARIO', $id)->delete();
@@ -213,12 +228,27 @@ class SeguridadController extends Controller
             ]);
         }
 
+        $this->audit->log(
+            'USUARIO',
+            $id,
+            'update',
+            $before,
+            $this->audit->sanitize(DB::table('USUARIO')->where('ID_USUARIO', $id)->first(), ['CONTRASENA_HASH']),
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
+
         return response()->json(['message' => 'Usuario actualizado correctamente.']);
     }
 
-    public function destroyUsuario($id)
+    public function destroyUsuario(Request $request, $id)
     {
+        $before = $this->audit->sanitize(DB::table('USUARIO')->where('ID_USUARIO', $id)->first(), ['CONTRASENA_HASH']);
+
         DB::table('USUARIO')->where('ID_USUARIO', $id)->update(['ESACTIVO' => false]);
+
+        $this->audit->log('USUARIO', $id, 'delete', $before, null, $request->user()?->ID_USUARIO, $request->ip());
+
         return response()->json(['message' => 'Usuario inactivado correctamente.']);
     }
 

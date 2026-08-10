@@ -14,6 +14,15 @@ use App\Http\Controllers\CatalogoRRHHController;
 // Public Auth routes
 Route::post('/login', [AuthController::class, 'login']);
 
+// Configuración inicial (primera instalación — sin autenticación)
+Route::get('/setup/status', [App\Http\Controllers\SetupController::class, 'status']);
+Route::post('/setup', [App\Http\Controllers\SetupController::class, 'store']);
+
+// Formulario público (sin Sanctum — autenticación por token en URL)
+Route::get('/formularios/responder/{token}', [App\Http\Controllers\FormularioPublicoController::class, 'show']);
+Route::post('/formularios/responder/{token}', [App\Http\Controllers\FormularioPublicoController::class, 'submit']);
+Route::post('/formularios/responder/{token}/adjunto', [App\Http\Controllers\FormularioPublicoController::class, 'uploadAdjunto']);
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user',   [AuthController::class, 'user']);
@@ -21,6 +30,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout',[AuthController::class, 'logout']);
 
     Route::get('/catalogs/{type}/select', [App\Http\Controllers\CatalogSelectController::class, 'select']);
+
+    // ── Notificaciones ────────────────────────────────────────────────────────
+    Route::get ('/notificaciones',                [App\Http\Controllers\NotificacionController::class, 'index']);
+    Route::get ('/notificaciones/no-leidas',      [App\Http\Controllers\NotificacionController::class, 'unreadCount']);
+    Route::post('/notificaciones/leer-todas',     [App\Http\Controllers\NotificacionController::class, 'markAllRead']);
+    Route::post('/notificaciones/{id}/leer',      [App\Http\Controllers\NotificacionController::class, 'markRead']);
 
     // ── Tipo Contratación ──────────────────────────────────────────────────────
     Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/tipo-contratacion',     [TipoContratacionController::class, 'index']);
@@ -34,11 +49,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:GEOGRAFIA_UPDATE')->put   ('/paises/{id}',[GeografiaController::class, 'update']);
     Route::middleware('permission:GEOGRAFIA_DELETE')->delete('/paises/{id}',[GeografiaController::class, 'destroy']);
 
+    // ── Geografía — Departamentos ──────────────────────────────────────────────
+    Route::middleware('permission:GEOGRAFIA_VIEW')  ->get   ('/departamentos-pais',     [GeografiaController::class, 'indexDepartamentos']);
+    Route::middleware('permission:GEOGRAFIA_CREATE')->post  ('/departamentos-pais',     [GeografiaController::class, 'storeDepartamento']);
+    Route::middleware('permission:GEOGRAFIA_UPDATE')->put   ('/departamentos-pais/{id}',[GeografiaController::class, 'updateDepartamento']);
+    Route::middleware('permission:GEOGRAFIA_DELETE')->delete('/departamentos-pais/{id}',[GeografiaController::class, 'destroyDepartamento']);
+
+    // ── Geografía — Municipios ─────────────────────────────────────────────────
+    Route::middleware('permission:GEOGRAFIA_VIEW')  ->get   ('/municipios',     [GeografiaController::class, 'indexMunicipios']);
+    Route::middleware('permission:GEOGRAFIA_CREATE')->post  ('/municipios',     [GeografiaController::class, 'storeMunicipio']);
+    Route::middleware('permission:GEOGRAFIA_UPDATE')->put   ('/municipios/{id}',[GeografiaController::class, 'updateMunicipio']);
+    Route::middleware('permission:GEOGRAFIA_DELETE')->delete('/municipios/{id}',[GeografiaController::class, 'destroyMunicipio']);
+
+    // ── Geografía — Distritos ──────────────────────────────────────────────────
+    Route::middleware('permission:GEOGRAFIA_VIEW')  ->get   ('/distritos',     [GeografiaController::class, 'indexDistritos']);
+    Route::middleware('permission:GEOGRAFIA_CREATE')->post  ('/distritos',     [GeografiaController::class, 'storeDistrito']);
+    Route::middleware('permission:GEOGRAFIA_UPDATE')->put   ('/distritos/{id}',[GeografiaController::class, 'updateDistrito']);
+    Route::middleware('permission:GEOGRAFIA_DELETE')->delete('/distritos/{id}',[GeografiaController::class, 'destroyDistrito']);
+
     // ── Catálogos MH ──────────────────────────────────────────────────────────
     Route::middleware('permission:MH_VIEW')  ->get   ('/tipo-documento',     [CatalogosMhController::class, 'index']);
     Route::middleware('permission:MH_CREATE')->post  ('/tipo-documento',     [CatalogosMhController::class, 'store']);
     Route::middleware('permission:MH_UPDATE')->put   ('/tipo-documento/{id}',[CatalogosMhController::class, 'update']);
     Route::middleware('permission:MH_DELETE')->delete('/tipo-documento/{id}',[CatalogosMhController::class, 'destroy']);
+
+    // ── Catálogos MH — Establecimientos ────────────────────────────────────────
+    Route::middleware('permission:MH_VIEW')  ->get   ('/establecimientos',     [App\Http\Controllers\EstablecimientoController::class, 'index']);
+    Route::middleware('permission:MH_CREATE')->post  ('/establecimientos',     [App\Http\Controllers\EstablecimientoController::class, 'store']);
+    Route::middleware('permission:MH_UPDATE')->put   ('/establecimientos/{id}',[App\Http\Controllers\EstablecimientoController::class, 'update']);
+    Route::middleware('permission:MH_DELETE')->delete('/establecimientos/{id}',[App\Http\Controllers\EstablecimientoController::class, 'destroy']);
 
     // ── Corporativo – Empresas ─────────────────────────────────────────────────
     Route::middleware('permission:CORP_VIEW')  ->get   ('/empresas',     [CorporativoController::class, 'indexEmpresas']);
@@ -159,6 +198,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:SEGURIDAD_DELETE')->delete('/usuarios/{id}',         [SeguridadController::class, 'destroyUsuario']);
     Route::middleware('permission:SEGURIDAD_UPDATE')->put   ('/usuarios/{id}/permisos',[SeguridadController::class, 'updateUsuarioPermisos']);
 
+    // ── Seguridad – Auditoría ─────────────────────────────────────────────────
+    Route::middleware('permission:SEGURIDAD_VIEW')->get('/auditoria',         [App\Http\Controllers\AuditoriaController::class, 'index']);
+    Route::middleware('permission:SEGURIDAD_VIEW')->get('/auditoria/tablas', [App\Http\Controllers\AuditoriaController::class, 'tablas']);
+
     // ── Catálogos RRHH – AFP ──────────────────────────────────────────────────
     Route::middleware('permission:CORP_VIEW')  ->get   ('/afp',     [CatalogoRRHHController::class, 'indexAfp']);
     Route::middleware('permission:CORP_CREATE')->post  ('/afp',     [CatalogoRRHHController::class, 'storeAfp']);
@@ -227,6 +270,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:SALARIAL_UPDATE')->put   ('/empleados/{id}',     [App\Http\Controllers\EmpleadoController::class, 'update']);
     Route::middleware('permission:SALARIAL_DELETE')->delete('/empleados/{id}',     [App\Http\Controllers\EmpleadoController::class, 'destroy']);
 
+    // ── Empleados — Expediente ampliado (Educación, Certificaciones, Dependientes) ──
+    Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/empleados/{id}/educacion',            [App\Http\Controllers\EmpleadoExpedienteController::class, 'indexEducacion']);
+    Route::middleware('permission:SALARIAL_CREATE')->post  ('/empleados/{id}/educacion',            [App\Http\Controllers\EmpleadoExpedienteController::class, 'storeEducacion']);
+    Route::middleware('permission:SALARIAL_UPDATE')->put   ('/empleados/{id}/educacion/{eduId}',    [App\Http\Controllers\EmpleadoExpedienteController::class, 'updateEducacion']);
+    Route::middleware('permission:SALARIAL_DELETE')->delete('/empleados/{id}/educacion/{eduId}',    [App\Http\Controllers\EmpleadoExpedienteController::class, 'destroyEducacion']);
+    Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/empleados/{id}/certificaciones',          [App\Http\Controllers\EmpleadoExpedienteController::class, 'indexCertificaciones']);
+    Route::middleware('permission:SALARIAL_CREATE')->post  ('/empleados/{id}/certificaciones',          [App\Http\Controllers\EmpleadoExpedienteController::class, 'storeCertificacion']);
+    Route::middleware('permission:SALARIAL_UPDATE')->put   ('/empleados/{id}/certificaciones/{certId}', [App\Http\Controllers\EmpleadoExpedienteController::class, 'updateCertificacion']);
+    Route::middleware('permission:SALARIAL_DELETE')->delete('/empleados/{id}/certificaciones/{certId}', [App\Http\Controllers\EmpleadoExpedienteController::class, 'destroyCertificacion']);
+    Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/empleados/{id}/dependientes',          [App\Http\Controllers\EmpleadoExpedienteController::class, 'indexDependientes']);
+    Route::middleware('permission:SALARIAL_CREATE')->post  ('/empleados/{id}/dependientes',          [App\Http\Controllers\EmpleadoExpedienteController::class, 'storeDependiente']);
+    Route::middleware('permission:SALARIAL_UPDATE')->put   ('/empleados/{id}/dependientes/{depId}',  [App\Http\Controllers\EmpleadoExpedienteController::class, 'updateDependiente']);
+    Route::middleware('permission:SALARIAL_DELETE')->delete('/empleados/{id}/dependientes/{depId}',  [App\Http\Controllers\EmpleadoExpedienteController::class, 'destroyDependiente']);
+
     // ── Planillas ─────────────────────────────────────────────────────────────
     Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/catalogs',              [App\Http\Controllers\PlanillaController::class, 'catalogs']);
     Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas',                       [App\Http\Controllers\PlanillaController::class, 'index']);
@@ -238,6 +295,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:SALARIAL_UPDATE')->post ('/planillas/{id}/cerrar',           [App\Http\Controllers\PlanillaController::class, 'cerrar']);
     Route::middleware('permission:SALARIAL_UPDATE')->post ('/planillas/{id}/anular',          [App\Http\Controllers\PlanillaController::class, 'anular']);
     Route::middleware('permission:SALARIAL_UPDATE')->post ('/planillas/{id}/contabilizar',    [App\Http\Controllers\PlanillaController::class, 'contabilizar']);
+    Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/{id}/asiento',          [App\Http\Controllers\PlanillaController::class, 'asiento']);
+    Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/{id}/asiento/export',   [App\Http\Controllers\PlanillaController::class, 'asientoExport']);
     Route::middleware('permission:SALARIAL_VIEW')->get   ('/planillas/{id}/horas-extras',    [App\Http\Controllers\DetalleHorasExtrasController::class, 'index']);
     Route::middleware('permission:SALARIAL_CREATE')->post ('/planillas/{id}/horas-extras',    [App\Http\Controllers\DetalleHorasExtrasController::class, 'store']);
     Route::middleware('permission:SALARIAL_DELETE')->delete('/planillas/{planillaId}/horas-extras/{id}', [App\Http\Controllers\DetalleHorasExtrasController::class, 'destroy']);
@@ -263,6 +322,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:ASISTENCIA_VIEW')  ->get   ('/asistencia',                   [App\Http\Controllers\AsistenciaController::class, 'index']);
     Route::middleware('permission:ASISTENCIA_VIEW')  ->get   ('/marcaciones/pendientes',       [App\Http\Controllers\AsistenciaController::class, 'marcacionesPendientes']);
     Route::middleware('permission:ASISTENCIA_CREATE')->post  ('/marcaciones',                  [App\Http\Controllers\AsistenciaController::class, 'storeMarcacion']);
+    Route::middleware('permission:ASISTENCIA_CREATE')->post  ('/marcaciones/importar',         [App\Http\Controllers\AsistenciaController::class, 'importar']);
     Route::middleware('permission:ASISTENCIA_UPDATE')->post  ('/asistencia/procesar',          [App\Http\Controllers\AsistenciaController::class, 'procesar']);
 
     // ── Incapacidades ─────────────────────────────────────────────────────────
@@ -290,4 +350,157 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
     Route::middleware('permission:SALARIAL_VIEW')->get('/dashboard/stats', [App\Http\Controllers\DashboardController::class, 'stats']);
+
+    // ── Gestión Humana — Adjuntos ─────────────────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/adjuntos/tipos',              [App\Http\Controllers\AdjuntoController::class, 'tipos']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/adjuntos',                    [App\Http\Controllers\AdjuntoController::class, 'index']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/adjuntos',                    [App\Http\Controllers\AdjuntoController::class, 'store']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/adjuntos/{id}/download',      [App\Http\Controllers\AdjuntoController::class, 'download']);
+    Route::middleware('permission:GESTION_HUMANA_DELETE')->delete('/adjuntos/{id}',               [App\Http\Controllers\AdjuntoController::class, 'destroy']);
+
+    // ── Gestión Humana — Encuestas ────────────────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/encuestas/mis-encuestas',     [App\Http\Controllers\EncuestaController::class, 'misEncuestas']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/encuestas',                   [App\Http\Controllers\EncuestaController::class, 'index']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/encuestas/{id}',              [App\Http\Controllers\EncuestaController::class, 'show']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/encuestas/{id}/resultados',   [App\Http\Controllers\EncuestaController::class, 'resultados']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/encuestas',                   [App\Http\Controllers\EncuestaController::class, 'store']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/encuestas/{id}',              [App\Http\Controllers\EncuestaController::class, 'update']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/encuestas/{id}/publicar',     [App\Http\Controllers\EncuestaController::class, 'publicar']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/encuestas/{id}/cerrar',       [App\Http\Controllers\EncuestaController::class, 'cerrar']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/encuestas/{id}/responder',    [App\Http\Controllers\EncuestaController::class, 'responder']);
+    Route::middleware('permission:GESTION_HUMANA_DELETE')->delete('/encuestas/{id}',              [App\Http\Controllers\EncuestaController::class, 'destroy']);
+
+    // ── Gestión Humana — Calendario ───────────────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/calendario/tipos',            [App\Http\Controllers\CalendarioController::class, 'tipos']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/calendario/eventos',          [App\Http\Controllers\CalendarioController::class, 'index']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/calendario/eventos',          [App\Http\Controllers\CalendarioController::class, 'store']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/calendario/eventos/{id}',     [App\Http\Controllers\CalendarioController::class, 'update']);
+    Route::middleware('permission:GESTION_HUMANA_DELETE')->delete('/calendario/eventos/{id}',     [App\Http\Controllers\CalendarioController::class, 'destroy']);
+
+    // ── Gestión Humana — Formularios empleado ─────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/formularios/plantillas/select',             [App\Http\Controllers\FormularioEmpleadoController::class, 'selectPlantillas']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/formularios/plantillas',                    [App\Http\Controllers\FormularioEmpleadoController::class, 'indexPlantillas']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/formularios/plantillas/{id}',               [App\Http\Controllers\FormularioEmpleadoController::class, 'showPlantilla']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/formularios/plantillas',                    [App\Http\Controllers\FormularioEmpleadoController::class, 'storePlantilla']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/formularios/plantillas/seed-default',       [App\Http\Controllers\FormularioEmpleadoController::class, 'seedPlantillaDefault']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/formularios/plantillas/{id}',               [App\Http\Controllers\FormularioEmpleadoController::class, 'updatePlantilla']);
+    Route::middleware('permission:GESTION_HUMANA_DELETE')->delete('/formularios/plantillas/{id}',              [App\Http\Controllers\FormularioEmpleadoController::class, 'destroyPlantilla']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/formularios/campanas',                      [App\Http\Controllers\FormularioEmpleadoController::class, 'indexCampanas']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/formularios/campanas',                      [App\Http\Controllers\FormularioEmpleadoController::class, 'storeCampana']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/formularios/campanas/{id}/activar',         [App\Http\Controllers\FormularioEmpleadoController::class, 'activarCampana']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/formularios/campanas/{id}/invitaciones',    [App\Http\Controllers\FormularioEmpleadoController::class, 'generarInvitaciones']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/formularios/campanas/{id}/invitaciones',    [App\Http\Controllers\FormularioEmpleadoController::class, 'invitacionesCampana']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/formularios/respuestas/pendientes',         [App\Http\Controllers\FormularioEmpleadoController::class, 'respuestasPendientes']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/formularios/respuestas/{id}',               [App\Http\Controllers\FormularioEmpleadoController::class, 'showRespuesta']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/formularios/respuestas/{id}/aprobar',       [App\Http\Controllers\FormularioEmpleadoController::class, 'aprobarRespuesta']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/formularios/respuestas/{id}/rechazar',      [App\Http\Controllers\FormularioEmpleadoController::class, 'rechazarRespuesta']);
+
+    // ── Gestión Humana — Vacaciones y permisos ────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/permisos/catalogs',                         [App\Http\Controllers\SolicitudPermisoController::class, 'catalogs']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/permisos',                                  [App\Http\Controllers\SolicitudPermisoController::class, 'index']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/permisos/pendientes',                       [App\Http\Controllers\SolicitudPermisoController::class, 'pendientes']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/permisos/saldo/{idEmpleado}',               [App\Http\Controllers\SolicitudPermisoController::class, 'saldo']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/permisos',                                  [App\Http\Controllers\SolicitudPermisoController::class, 'store']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/permisos/saldos/inicializar',               [App\Http\Controllers\SolicitudPermisoController::class, 'inicializarSaldos']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/permisos/{id}/aprobar',                     [App\Http\Controllers\SolicitudPermisoController::class, 'aprobar']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/permisos/{id}/integrar-planilla',           [App\Http\Controllers\SolicitudPermisoController::class, 'integrarPlanilla']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/permisos/{id}/rechazar',                    [App\Http\Controllers\SolicitudPermisoController::class, 'rechazar']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/permisos/{id}/cancelar',                    [App\Http\Controllers\SolicitudPermisoController::class, 'cancelar']);
+
+    // ── Gestión Humana — Capacitaciones ───────────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/capacitaciones',                            [App\Http\Controllers\CapacitacionController::class, 'index']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/capacitaciones',                            [App\Http\Controllers\CapacitacionController::class, 'store']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/capacitaciones/inscripciones/{id}/asistencias', [App\Http\Controllers\CapacitacionController::class, 'asistencias']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/capacitaciones/inscripciones/{id}/asistencia', [App\Http\Controllers\CapacitacionController::class, 'asistencia']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/capacitaciones/inscripciones/{id}/completar', [App\Http\Controllers\CapacitacionController::class, 'completar']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/capacitaciones/{id}',                      [App\Http\Controllers\CapacitacionController::class, 'show']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/capacitaciones/{id}',                       [App\Http\Controllers\CapacitacionController::class, 'update']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/capacitaciones/{id}/publicar',              [App\Http\Controllers\CapacitacionController::class, 'publicar']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/capacitaciones/{id}/cerrar',                [App\Http\Controllers\CapacitacionController::class, 'cerrar']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/capacitaciones/{id}/inscribir',             [App\Http\Controllers\CapacitacionController::class, 'inscribir']);
+    Route::middleware('permission:GESTION_HUMANA_DELETE')->delete('/capacitaciones/{id}',                       [App\Http\Controllers\CapacitacionController::class, 'destroy']);
+
+    // ── Gestión Humana — Reclutamiento ──────────────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/reclutamiento/catalogs',                    [App\Http\Controllers\ReclutamientoController::class, 'catalogs']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/reclutamiento/vacantes',                    [App\Http\Controllers\ReclutamientoController::class, 'indexVacantes']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/reclutamiento/vacantes/{id}',               [App\Http\Controllers\ReclutamientoController::class, 'showVacante']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/reclutamiento/candidatos/{id}/entrevistas', [App\Http\Controllers\ReclutamientoController::class, 'entrevistasCandidato']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/reclutamiento/vacantes',                    [App\Http\Controllers\ReclutamientoController::class, 'storeVacante']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/reclutamiento/vacantes/{id}',               [App\Http\Controllers\ReclutamientoController::class, 'updateVacante']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/reclutamiento/vacantes/{id}/cerrar',        [App\Http\Controllers\ReclutamientoController::class, 'cerrarVacante']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/reclutamiento/candidatos',                  [App\Http\Controllers\ReclutamientoController::class, 'storeCandidato']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/reclutamiento/candidatos/{id}/etapa',       [App\Http\Controllers\ReclutamientoController::class, 'avanzarEtapa']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/reclutamiento/candidatos/{id}/cv',          [App\Http\Controllers\ReclutamientoController::class, 'attachCv']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/reclutamiento/candidatos/{id}/contratar',  [App\Http\Controllers\ReclutamientoController::class, 'previewContratar']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/reclutamiento/candidatos/{id}/contratar', [App\Http\Controllers\ReclutamientoController::class, 'contratar']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/reclutamiento/entrevistas',                 [App\Http\Controllers\ReclutamientoController::class, 'storeEntrevista']);
+    Route::middleware('permission:GESTION_HUMANA_DELETE')->delete('/reclutamiento/vacantes/{id}',               [App\Http\Controllers\ReclutamientoController::class, 'destroyVacante']);
+
+    // ── Gestión Humana — Evaluación de desempeño ────────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/evaluaciones/periodos',                   [App\Http\Controllers\EvaluacionDesempenoController::class, 'indexPeriodos']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/evaluaciones/periodos/{id}',              [App\Http\Controllers\EvaluacionDesempenoController::class, 'showPeriodo']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/evaluaciones/periodos/{id}/resultados',   [App\Http\Controllers\EvaluacionDesempenoController::class, 'resultados']);
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/evaluaciones/{id}',                       [App\Http\Controllers\EvaluacionDesempenoController::class, 'showEvaluacion']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/evaluaciones/periodos',                   [App\Http\Controllers\EvaluacionDesempenoController::class, 'storePeriodo']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/evaluaciones/periodos/{id}/activar',      [App\Http\Controllers\EvaluacionDesempenoController::class, 'activarPeriodo']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/evaluaciones/periodos/{id}/cerrar',       [App\Http\Controllers\EvaluacionDesempenoController::class, 'cerrarPeriodo']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/evaluaciones/periodos/{id}/asignar',      [App\Http\Controllers\EvaluacionDesempenoController::class, 'asignarEvaluaciones']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/evaluaciones/{id}/metas',                 [App\Http\Controllers\EvaluacionDesempenoController::class, 'saveMetas']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->post  ('/evaluaciones/{id}/completar',             [App\Http\Controllers\EvaluacionDesempenoController::class, 'completar']);
+
+    // ── Gestión Humana — Actividades económicas MH ─────────────────────────────
+    Route::middleware('permission:GESTION_HUMANA_VIEW')  ->get   ('/actividades-economicas',                  [App\Http\Controllers\ActividadEconomicaController::class, 'index']);
+    Route::middleware('permission:GESTION_HUMANA_CREATE')->post  ('/actividades-economicas',                  [App\Http\Controllers\ActividadEconomicaController::class, 'store']);
+    Route::middleware('permission:GESTION_HUMANA_UPDATE')->put   ('/actividades-economicas/{id}',             [App\Http\Controllers\ActividadEconomicaController::class, 'update']);
+    Route::middleware('permission:GESTION_HUMANA_DELETE')->delete('/actividades-economicas/{id}',             [App\Http\Controllers\ActividadEconomicaController::class, 'destroy']);
+
+    // ── Cumplimiento SV — Planilla ISSS ───────────────────────────────────────
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/isss/planillas', [App\Http\Controllers\IsssPlanillaController::class, 'planillas']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/isss/preview',   [App\Http\Controllers\IsssPlanillaController::class, 'preview']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/isss/export',    [App\Http\Controllers\IsssPlanillaController::class, 'export']);
+
+    // ── Cumplimiento SV — Planilla AFP ────────────────────────────────────────
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/afp/planillas', [App\Http\Controllers\AfpPlanillaController::class, 'planillas']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/afp/catalogo',  [App\Http\Controllers\AfpPlanillaController::class, 'catalogo']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/afp/preview',   [App\Http\Controllers\AfpPlanillaController::class, 'preview']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/afp/export',    [App\Http\Controllers\AfpPlanillaController::class, 'export']);
+
+    // ── Cumplimiento SV — INSAFORP ────────────────────────────────────────────
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/insaforp/planillas', [App\Http\Controllers\InsaforpController::class, 'planillas']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/insaforp/preview',   [App\Http\Controllers\InsaforpController::class, 'preview']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/insaforp/export',    [App\Http\Controllers\InsaforpController::class, 'export']);
+
+    // ── Cumplimiento SV — F-14 / Renta retenida MH ────────────────────────────
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/renta/preview', [App\Http\Controllers\RentaRetencionController::class, 'preview']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/renta/export',  [App\Http\Controllers\RentaRetencionController::class, 'export']);
+
+    // ── Cumplimiento SV — Altas y bajas ISSS ──────────────────────────────────
+    Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/cumplimiento/isss-movimientos',                 [App\Http\Controllers\IsssMovimientoController::class, 'index']);
+    Route::middleware('permission:SALARIAL_UPDATE')->post  ('/cumplimiento/isss-movimientos/marcar-enviado',  [App\Http\Controllers\IsssMovimientoController::class, 'marcarEnviado']);
+    Route::middleware('permission:SALARIAL_VIEW')  ->get   ('/cumplimiento/isss-movimientos/export',          [App\Http\Controllers\IsssMovimientoController::class, 'export']);
+
+    // ── Cumplimiento SV — Aguinaldo (corrida) ─────────────────────────────────
+    Route::middleware('permission:SALARIAL_VIEW')  ->get ('/cumplimiento/aguinaldo/preview',        [App\Http\Controllers\AguinaldoCorridaController::class, 'preview']);
+    Route::middleware('permission:SALARIAL_VIEW')  ->get ('/cumplimiento/aguinaldo/export',         [App\Http\Controllers\AguinaldoCorridaController::class, 'export']);
+    Route::middleware('permission:SALARIAL_CREATE')->post('/cumplimiento/aguinaldo/crear-planilla', [App\Http\Controllers\AguinaldoCorridaController::class, 'crearPlanilla']);
+
+    // ── Cumplimiento SV — Retención 10% servicios profesionales ──────────────
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/retencion10/planillas',  [App\Http\Controllers\Retencion10Controller::class, 'planillas']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/retencion10/estimacion', [App\Http\Controllers\Retencion10Controller::class, 'estimacion']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/retencion10/preview',    [App\Http\Controllers\Retencion10Controller::class, 'preview']);
+    Route::middleware('permission:SALARIAL_VIEW')->get('/cumplimiento/retencion10/export',     [App\Http\Controllers\Retencion10Controller::class, 'export']);
+
+    // ── Portal Empleado (autoservicio) ───────────────────────────────────────
+    Route::middleware('portal.employee')->group(function () {
+        Route::middleware('permission:PORTAL_VIEW')       ->get ('/portal/me',                    [App\Http\Controllers\PortalController::class, 'me']);
+        Route::middleware('permission:PORTAL_BOLETAS')     ->get ('/portal/boletas',                [App\Http\Controllers\PortalController::class, 'boletas']);
+        Route::middleware('permission:PORTAL_PERMISOS')    ->get ('/portal/permisos/catalogs',      [App\Http\Controllers\PortalController::class, 'permisosCatalogs']);
+        Route::middleware('permission:PORTAL_PERMISOS')    ->get ('/portal/permisos',               [App\Http\Controllers\PortalController::class, 'permisos']);
+        Route::middleware('permission:PORTAL_PERMISOS')    ->post('/portal/permisos',               [App\Http\Controllers\PortalController::class, 'storePermiso']);
+        Route::middleware('permission:PORTAL_PERMISOS')    ->post('/portal/permisos/{id}/cancelar', [App\Http\Controllers\PortalController::class, 'cancelarPermiso']);
+        Route::middleware('permission:PORTAL_ENCUESTAS')   ->get ('/portal/encuestas',              [App\Http\Controllers\PortalController::class, 'encuestas']);
+        Route::middleware('permission:PORTAL_ENCUESTAS')   ->post('/portal/encuestas/{id}/responder', [App\Http\Controllers\PortalController::class, 'responderEncuesta']);
+        Route::middleware('permission:PORTAL_EVALUACIONES')->get ('/portal/evaluaciones',           [App\Http\Controllers\PortalController::class, 'evaluaciones']);
+        Route::middleware('permission:PORTAL_EVALUACIONES')->get ('/portal/evaluaciones/{id}',      [App\Http\Controllers\PortalController::class, 'evaluacionShow']);
+    });
 });

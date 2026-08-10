@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\PaginatesQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\AccountingPostingService;
 use App\Services\PayrollCalculatorService;
 use App\Services\PayrollPostingService;
 use App\Services\PlanillaLifecycleService;
@@ -20,17 +21,20 @@ class PlanillaController extends Controller
     protected $posting;
     protected $lifecycle;
     protected $reportService;
+    protected $accounting;
 
     public function __construct(
         PayrollCalculatorService $calculator,
         PayrollPostingService $posting,
         PlanillaLifecycleService $lifecycle,
-        PlanillaReportService $reportService
+        PlanillaReportService $reportService,
+        AccountingPostingService $accounting
     ) {
         $this->calculator = $calculator;
         $this->posting = $posting;
         $this->lifecycle = $lifecycle;
         $this->reportService = $reportService;
+        $this->accounting = $accounting;
     }
 
     public function catalogs()
@@ -223,11 +227,55 @@ class PlanillaController extends Controller
     public function contabilizar(Request $request, $id)
     {
         try {
-            $this->lifecycle->contabilizar($id, $request->user()?->USUARIO);
+            $this->lifecycle->contabilizar($id, $request->user()?->USUARIO, $request->user()?->ID_USUARIO);
             return response()->json(['message' => 'Planilla contabilizada correctamente.']);
         } catch (\RuntimeException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }
+    }
+
+    /**
+     * Asiento contable generado al contabilizar la planilla.
+     */
+    public function asiento($id)
+    {
+        $data = $this->accounting->getAsiento((int) $id);
+        if (!$data) {
+            return response()->json(['error' => 'Esta planilla aún no tiene un asiento contable generado.'], 404);
+        }
+
+        return response()->json($data);
+    }
+
+    /**
+     * Exporta el asiento contable de la planilla en JSON o CSV.
+     */
+    public function asientoExport(Request $request, $id)
+    {
+        $data = $this->accounting->getAsiento((int) $id);
+        if (!$data) {
+            return response()->json(['error' => 'Esta planilla aún no tiene un asiento contable generado.'], 404);
+        }
+
+        if ($request->input('format') !== 'csv') {
+            return response()->json($data);
+        }
+
+        $filename = "asiento_planilla_{$id}.csv";
+        $callback = function () use ($data) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Cuenta', 'Descripción', 'Debe', 'Haber']);
+            foreach ($data['detalles'] as $detalle) {
+                fputcsv($handle, [$detalle->CUENTA, $detalle->DESCRIPCION, $detalle->DEBE, $detalle->HABER]);
+            }
+            fputcsv($handle, ['', 'TOTALES', $data['asiento']->TOTAL_DEBE, $data['asiento']->TOTAL_HABER]);
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename={$filename}",
+        ]);
     }
 
     public function show($id)

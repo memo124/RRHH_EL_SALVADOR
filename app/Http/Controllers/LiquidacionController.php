@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Models\Empleado;
+use App\Services\IsssMovimientoService;
 use App\Services\LiquidacionCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -14,10 +15,12 @@ class LiquidacionController extends Controller
     use PaginatesQueries;
 
     protected $calculator;
+    protected $isssMovimiento;
 
-    public function __construct(LiquidacionCalculatorService $calculator)
+    public function __construct(LiquidacionCalculatorService $calculator, IsssMovimientoService $isssMovimiento)
     {
         $this->calculator = $calculator;
+        $this->isssMovimiento = $isssMovimiento;
     }
 
     public function index(Request $request)
@@ -110,6 +113,8 @@ class LiquidacionController extends Controller
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
+        $this->isssMovimiento->registrarBaja($empleadoId, $request->FECHA_LIQUIDACION);
 
         return response()->json(['ID_LIQUIDACION' => $maxId + 1, 'message' => 'Liquidación registrada.'], 201);
     }

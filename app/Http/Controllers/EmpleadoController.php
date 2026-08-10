@@ -2,11 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AuditService;
+use App\Services\IsssMovimientoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class EmpleadoController extends Controller
 {
+    public function __construct(
+        protected IsssMovimientoService $isssMovimiento,
+        protected AuditService $audit
+    ) {
+    }
+
     public function index(Request $request)
     {
         $query = $this->empleadosQuery();
@@ -233,6 +241,18 @@ class EmpleadoController extends Controller
             'ID_PERFILPAGO' => 1
         ]);
 
+        $this->isssMovimiento->registrarAlta($id);
+
+        $this->audit->log(
+            'EMPLEADO',
+            $id,
+            'create',
+            null,
+            $this->audit->sanitize(DB::table('EMPLEADO')->where('ID_EMPLEADO', $id)->first()),
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
+
         return response()->json(['ID_EMPLEADO' => $id, 'message' => 'Empleado creado correctamente.'], 201);
     }
 
@@ -268,6 +288,8 @@ class EmpleadoController extends Controller
         $salarioMensual = $request->SALARIOMENSUAL;
         $salarioDiario = $salarioMensual / 30.0;
 
+        $before = $this->audit->sanitize(DB::table('EMPLEADO')->where('ID_EMPLEADO', $id)->first());
+
         DB::table('EMPLEADO')
             ->where('ID_EMPLEADO', $id)
             ->update([
@@ -300,14 +322,38 @@ class EmpleadoController extends Controller
                 'ESACTIVO' => $request->ESACTIVO
             ]);
 
+        $this->audit->log(
+            'EMPLEADO',
+            $id,
+            'update',
+            $before,
+            $this->audit->sanitize(DB::table('EMPLEADO')->where('ID_EMPLEADO', $id)->first()),
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
+
         return response()->json(['message' => 'Empleado actualizado correctamente.']);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $before = $this->audit->sanitize(DB::table('EMPLEADO')->where('ID_EMPLEADO', $id)->first());
+
         DB::table('EMPLEADO')
             ->where('ID_EMPLEADO', $id)
             ->update(['ESACTIVO' => false]);
+
+        $this->isssMovimiento->registrarBaja((int) $id);
+
+        $this->audit->log(
+            'EMPLEADO',
+            $id,
+            'delete',
+            $before,
+            null,
+            $request->user()?->ID_USUARIO,
+            $request->ip()
+        );
 
         return response()->json(['message' => 'Empleado inactivado correctamente.']);
     }
