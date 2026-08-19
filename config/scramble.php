@@ -42,7 +42,7 @@ return [
     ],
 
     'info' => [
-        'version' => env('API_VERSION', '1.3.0'),
+        'version' => env('API_VERSION', '1.3.1'),
 
         'description' => <<<'MD'
         API REST de **RRHH El Salvador** (nómina, empleados, gestión humana, portal empleado, cumplimiento SV).

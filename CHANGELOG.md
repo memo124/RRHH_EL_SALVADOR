@@ -2,6 +2,25 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.3.1] - 2026-08-18
+
+### Agregado
+
+- **`CleanTransactionalSeeder`:** vacía tablas transaccionales (empresas, empleados, planillas, GH, reclutamiento, auditoría, etc.) y conserva catálogos legales, geografía y RBAC
+- **Comando Artisan `db:clean-ejercicio`:** atajo para repetir ejercicios o pruebas sin `migrate:fresh`
+- Restaura plantilla global de contrato tras la limpieza (`PlantillaContratoSeeder`)
+- Documentación: sección «Limpiar base de datos para ejercicios» en README y plan de pruebas [docs/PRUEBAS_v1.3.1.md](docs/PRUEBAS_v1.3.1.md)
+
+### Cambiado
+
+- **Menú lateral (Dashboard):** nombres largos de grupos y opciones hacen wrap (`break-words`) en lugar de truncarse; mejor alineación de iconos y chevron
+
+### Pruebas
+
+Ver [docs/PRUEBAS_v1.3.1.md](docs/PRUEBAS_v1.3.1.md).
+
+[1.3.1]: https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.3.1
+
 ## [1.3.0] - 2026-08-10
 
 ### Agregado

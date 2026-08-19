@@ -112,21 +112,24 @@
             data-no-lock
             @click="onGroupClick(group.group, $event)"
             type="button"
-            :title="sidebarCollapsed && !isMobile ? group.group : ''"
-            class="w-full flex items-center px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors font-bold text-sm"
+            class="w-full flex items-start gap-3 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors font-bold text-sm"
             :class="{ 'bg-slate-100 dark:bg-slate-700/60': sidebarCollapsed && !isMobile && hoveredGroup === group.group }"
           >
             <AppIcon
               :name="group.icon"
               size="md"
-              :class="sidebarCollapsed && !isMobile ? 'mx-auto' : 'shrink-0'"
+              class="shrink-0 mt-0.5"
+              :class="sidebarCollapsed && !isMobile ? 'mx-auto' : ''"
             />
-            <span v-if="!sidebarCollapsed || isMobile" class="flex items-center space-x-2 flex-1 text-left ml-3">
-              <span class="truncate">{{ group.group }}</span>
+            <span
+              v-if="!sidebarCollapsed || isMobile"
+              class="flex-1 min-w-0 flex items-start gap-1.5 text-left"
+            >
+              <span class="flex-1 leading-snug break-words">{{ group.group }}</span>
               <AppIcon
                 name="chevron-down"
                 size="xs"
-                class="text-slate-400 dark:text-slate-500 transition-transform duration-200 shrink-0"
+                class="text-slate-400 dark:text-slate-500 transition-transform duration-200 shrink-0 mt-1"
                 :class="{ 'rotate-180': openGroups[group.group] }"
               />
             </span>
@@ -141,11 +144,11 @@
               v-for="option in group.options"
               :key="option.route"
               :to="option.route"
-              class="flex items-center px-6 lg:px-8 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-xs font-semibold"
+              class="block px-6 lg:px-8 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-xs font-semibold leading-snug break-words"
               active-class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold border-l-4 border-indigo-600 dark:border-indigo-400"
               @click="mobileMenuOpen = false"
             >
-              <span>{{ option.name }}</span>
+              {{ option.name }}
             </router-link>
           </div>
         </div>

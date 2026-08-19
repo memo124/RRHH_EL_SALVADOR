@@ -2,23 +2,21 @@
 
 Sistema de Recursos Humanos y nómina para empresas en El Salvador. Incluye expedientes de empleados, cálculo de planilla (ISSS, AFP, renta, recálculo semestral), asistencia, incapacidades, liquidaciones, reportes PDF/Excel, exportación bancaria, cumplimiento legal, gestión humana integral y portal del empleado.
 
-**Versión:** `1.3.0`  
+**Versión:** `1.3.1`  
 **Stack:** Laravel 11 · Vue 3 · Vite 6 · Tailwind CSS 3 · Chart.js 4 · FullCalendar 6 · PostgreSQL 14+ · Scramble (OpenAPI)
 
 ---
 
-## Novedades v1.3.0
+## Novedades v1.3.1
 
-- **Gestión Humana:** encuestas, calendario RRHH, formularios de actualización con aprobación, documentos adjuntos, vacaciones/permisos (integración planilla), capacitaciones
-- **Reclutamiento y evaluación:** vacantes, candidatos, entrevistas, onboarding a empleado, periodos y metas de desempeño
-- **Cumplimiento SV:** exportaciones ISSS, AFP, INSAFORP, renta F-14, aguinaldo, retención 10% y bitácora de altas/bajas ISSS
-- **Portal del empleado:** boletas, permisos, encuestas, evaluaciones y perfil (`PORTAL_*`)
-- **Auditoría y notificaciones:** bitácora de cambios y centro de notificaciones in-app
-- **API OpenAPI:** documentación interactiva Scramble en `/docs/api`
-- **Asistencia:** importación de marcaciones desde CSV
-- **Setup:** wizard de instalación en `/setup` con `BootstrapSeeder`
+- **Limpieza de ejercicios:** comando `php artisan db:clean-ejercicio` y seeder `CleanTransactionalSeeder` — vacía datos operativos y conserva catálogos (geografía, AFP, ISR, RBAC, tipos de planilla, etc.)
+- **Menú lateral:** textos largos de grupos y opciones se muestran en varias líneas sin truncar
 
-Ver detalle completo en [CHANGELOG.md](CHANGELOG.md), módulo en [docs/MODULO-GESTION-HUMANA.md](docs/MODULO-GESTION-HUMANA.md) y plan de pruebas en [docs/PRUEBAS_v1.3.0.md](docs/PRUEBAS_v1.3.0.md).
+Ver detalle completo en [CHANGELOG.md](CHANGELOG.md) y plan de pruebas en [docs/PRUEBAS_v1.3.1.md](docs/PRUEBAS_v1.3.1.md).
+
+### Versión anterior (v1.3.0)
+
+Gestión Humana integral, cumplimiento SV, portal del empleado, auditoría, Scramble OpenAPI, importación CSV de asistencia y wizard `/setup`. Ver [docs/MODULO-GESTION-HUMANA.md](docs/MODULO-GESTION-HUMANA.md) y [docs/PRUEBAS_v1.3.0.md](docs/PRUEBAS_v1.3.0.md).
 
 ---
 
@@ -87,7 +85,8 @@ Abrir `http://127.0.0.1:8000`
 | Documento | Contenido |
 |-----------|-----------|
 | [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
-| [docs/PRUEBAS_v1.3.0.md](docs/PRUEBAS_v1.3.0.md) | Plan de pruebas de la versión actual |
+| [docs/PRUEBAS_v1.3.1.md](docs/PRUEBAS_v1.3.1.md) | Plan de pruebas de la versión actual |
+| [docs/PRUEBAS_v1.3.0.md](docs/PRUEBAS_v1.3.0.md) | Plan de pruebas v1.3.0 (histórico) |
 | [docs/MODULO-GESTION-HUMANA.md](docs/MODULO-GESTION-HUMANA.md) | Gestión Humana, cumplimiento SV y portal |
 | [docs/INSTALACION-WINDOWS.md](docs/INSTALACION-WINDOWS.md) | Instalación en Windows (AppServ / XAMPP) |
 | [docs/INSTALACION-LINUX.md](docs/INSTALACION-LINUX.md) | Instalación en Linux |
@@ -146,6 +145,33 @@ php artisan scramble:cache
 | `php artisan db:seed --class=RbacSeeder` | Roles y permisos (incl. portal / gestión humana) |
 | `php artisan migrate:fresh --seed` | Reinicia BD y vuelve a sembrar |
 | `php artisan db:seed --class=DemoQuincenalJunioRecalculoSeeder` | Ejercicio quincenal Ene–Jun + recálculo ISR |
+| `php artisan db:clean-ejercicio` | Vacía datos operativos y conserva catálogos (ver abajo) |
+
+### Limpiar base de datos para ejercicios
+
+Para repetir pruebas o ejercicios **sin perder catálogos** (geografía, AFP, ISR, RBAC, tipos de planilla, etc.):
+
+```bash
+php artisan db:clean-ejercicio
+```
+
+Equivalente directo:
+
+```bash
+php artisan db:seed --class=CleanTransactionalSeeder --force
+```
+
+**Qué elimina:** empresas, empleados, planillas, usuarios, asistencia, contratos, gestión humana, reclutamiento, auditoría y demás tablas transaccionales.
+
+**Qué conserva:** catálogos legales y de referencia. Restaura la plantilla global de contrato.
+
+**Después de limpiar:**
+
+1. Registrar de nuevo empresa y admin en `/setup`, **o**
+2. Cargar demo: `php artisan db:seed --class=DemoSeeder` (usuario `admin@rrhh.sv` / `Admin123!`)
+
+> En Windows con XAMPP, use la ruta de PHP 8.2 si `php` en PATH es antiguo, por ejemplo:  
+> `C:\xampp\php\php.exe artisan db:clean-ejercicio`
 
 ---
 
@@ -184,6 +210,7 @@ Parámetros comunes en listados: `page`, `per_page` (10–100), `search` (búsqu
 
 | Versión | Fecha | Notas |
 |---------|-------|-------|
+| [1.3.1](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.3.1) | 2026-08-18 | Limpieza de ejercicios (`db:clean-ejercicio`), UX menú lateral |
 | [1.3.0](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.3.0) | 2026-08-10 | Gestión Humana, cumplimiento SV, portal, auditoría, Scramble |
 | [1.2.0](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.2.0) | 2026-08-02 | Dashboard, errores API, UX, recálculo ISR |
 | [1.1.0](https://github.com/memo124/RRHH_EL_SALVADOR/releases/tag/v1.1.0) | 2026-07 | UX móvil, iconos SVG, paginación global |
