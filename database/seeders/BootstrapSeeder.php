@@ -6,7 +6,7 @@ use Illuminate\Database\Seeder;
 
 /**
  * Instalación limpia: catálogos legales + RBAC sin empresa demo ni usuarios.
- * Uso: php artisan migrate --seed --class=BootstrapSeeder
+ * Uso: php artisan migrate (incluye catálogos vía migración bootstrap)
  * Luego completar /setup en el navegador (empresa + administrador).
  */
 class BootstrapSeeder extends Seeder

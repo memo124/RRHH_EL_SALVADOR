@@ -126,9 +126,7 @@ class SetupService
 
     protected function crearUsuarioAdmin(array $data): int
     {
-        if (DB::table('ROL')->where('ID_ROL', 1)->doesntExist()) {
-            $this->callRbacIfMissing();
-        }
+        $this->ensureRbac();
 
         $maxId = DB::table('USUARIO')->max('ID_USUARIO') ?? 0;
         $id = $maxId + 1;
@@ -160,7 +158,7 @@ class SetupService
         return $id;
     }
 
-    protected function callRbacIfMissing(): void
+    protected function ensureRbac(): void
     {
         (new RbacSeeder())->run();
     }
