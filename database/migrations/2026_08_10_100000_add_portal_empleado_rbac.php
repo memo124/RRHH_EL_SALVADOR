@@ -34,10 +34,12 @@ return new class extends Migration
                 ['ID_ROL' => 1, 'ID_PERMISO' => $perm['ID_PERMISO']],
                 []
             );
-            DB::table('USUARIO_PERMISO')->updateOrInsert(
-                ['ID_USUARIO' => 1, 'ID_PERMISO' => $perm['ID_PERMISO']],
-                ['ES_CONCEDIDO' => true, 'USUARIO_ASIGNO' => 'SYSTEM']
-            );
+            if (DB::table('USUARIO')->where('ID_USUARIO', 1)->exists()) {
+                DB::table('USUARIO_PERMISO')->updateOrInsert(
+                    ['ID_USUARIO' => 1, 'ID_PERMISO' => $perm['ID_PERMISO']],
+                    ['ES_CONCEDIDO' => true, 'USUARIO_ASIGNO' => 'SYSTEM']
+                );
+            }
         }
 
         DB::table('ROL')->updateOrInsert(
