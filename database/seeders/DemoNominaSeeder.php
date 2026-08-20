@@ -11,6 +11,38 @@ class DemoNominaSeeder extends Seeder
     use CalculatesDemoPayroll;
     public function run(): void
     {
+        DB::table('EMPRESA')->updateOrInsert(
+            ['ID_EMPRESA' => 1],
+            [
+                'NOMBREEMPRESA' => 'Empresa Principal RRHH',
+                'ABREVIATURA' => 'EPR',
+                'URL_LOGO' => '/images/logos/empresa-1.svg',
+                'EMPRESAACTIVA' => true,
+            ]
+        );
+
+        DB::table('PERIODO_LABORAL')->updateOrInsert(
+            ['ID_PERIODO' => 1],
+            [
+                'FECHAINICIO' => '2026-07-01 00:00:00',
+                'FECHAFIN' => '2026-07-31 23:59:59',
+                'DIAS' => 30,
+                'CALPERIODO' => 'Julio 2026',
+                'ESACTIVO' => true,
+            ]
+        );
+
+        DB::table('CUENTA')->updateOrInsert(
+            ['ID_CUENTA' => 1],
+            [
+                'ID_BANCO' => 1,
+                'CONCEPTOCUENTA' => 'Cuenta Principal Planilla',
+                'NUMEROCUENTA' => '1234567890',
+                'CENTROCOSTO_CODIGO' => 'CC01',
+                'ESACTIVO' => true,
+            ]
+        );
+
         // Segunda empresa de demostración
         DB::table('EMPRESA')->updateOrInsert(
             ['ID_EMPRESA' => 2],
